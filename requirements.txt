@@ -1,0 +1,2 @@
+-r self-improving-auto-researcher-em/requirements.txt
+claude-agent-sdk==0.1.50
