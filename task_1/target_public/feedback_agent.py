@@ -15,43 +15,47 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-if os.path.exists('../public/train.py'):
-    logger.info("Removing existing train.py file")
-    os.remove('../public/train.py')
-    
-if os.path.exists('../public/target_agent.py'):
-    logger.info("Removing existing target_agent.py file")
-    os.remove('../public/target_agent.py')
-    
-if os.path.exists('../public/agent_execution.json'):
-    logger.info("Removing existing agent_execution.json file")
-    os.remove('../public/agent_execution.json')
 
-TASK = open("../private/SAMPLE_TASK_DESCRIPTIONS.md").read()
-logger.info("Task loaded from task.md")
+SAMPLE_TASKS = open("../private/SAMPLE_TASK_DESCRIPTIONS.md").read()
+logger.info("Task loaded from SAMPLE_TASK_DESCRIPTIONS.md")
 
-INITIAL_TARGET_AGENT_PY = open("../private/initial_target_agent.py").read()
-logger.info("Initial target agent loaded")
+AGENT_PY = open("../target_public/target_agent.py").read()
+logger.info("Target agent loaded")
 
-SAMPLE_AGENT_EXECUTION = json.load(open("../private/sample_agent_execution.json"))
+AGENT_EXECUTION = json.load(open("../public/agent_execution.json"))
 logger.info("Sample agent execution loaded")
 
+TASK = open("../public/task.md").read()
+logger.info("Task loaded from task.md")
 
-PROMPT = f"""You are a meta-agent. Your task is to create a target agent which can execute a task. Go ahead a create a target_agent.py for the target agent which in turn can solve the task
+PROMPT = f"""You are an expert AI Engineer. Your task is to analyze an agent scaffold and its execution logs to suggest improvements to the scaffold.
 
-Here are a couple of sample task descriptions which the target agent has to solve.
+Here are a couple of sample task descriptions which the agent is designed to solve.
+```
+{SAMPLE_TASKS}
+```
+Here is a agent.py which you created earlier
+```
+{AGENT_PY}
+```
+Here is the task which you worked on:
+```
 {TASK}
-
-Here is a sample target_agent.py
-{INITIAL_TARGET_AGENT_PY}
-
-Here is a sample agent execution trajectory:
-{json.dumps(SAMPLE_AGENT_EXECUTION, indent=2)}
+```
+Here is the agent execution trajectory:
+```
+{json.dumps(AGENT_EXECUTION, indent=2)}
+```
+Your task is to analyze the agent.py and identify improvements that could be made to it. 
 
 RULES:
-1. The current working directory is {Path(__file__).parent}. Create the target_agent.py in the current working directory itself
-2. The target_agent.py should accept a directory path as a command-line argument in its main block. This directory should contain the data folder and task.md file.
-3. The target_agent.py should log its execution trajectory to a JSON file named 'agent_execution.json'. This log should include all messages, tool calls, and their results. Use the same format as the sample agent execution trajectory provided above.
+- Focus on the structure, approach, and methodology of the target agent itself
+- Do NOT optimize for the specific task shown above
+- Instead, think about how to make the target agent more robust and generalizable across the variety of tasks shown in the sample task descriptions
+- Consider improvements to reasoning strategies, and overall agent architecture
+- Provide thoughtful recommendations for enhancing the target agent's capabilities across diverse tasks.
+- Consolidate all the improvements and write it to improvement.md in the current working directory: {Path(__file__).parent}
+- Once you have written improvement.md , go ahead and implement the improvements to the agent in ../target_public/target_agent.py
 """
 
 async def main():
@@ -63,6 +67,15 @@ async def main():
 
     turn_count = 0
     start_time = datetime.now()
+    
+    # Save the prompt to prompt.md for reference
+    prompt_path = Path(__file__).parent / "prompt.md"
+    logger.info(f"Saving prompt to {prompt_path}")
+    with open(prompt_path, 'w') as f:
+        f.write(PROMPT)
+    logger.info("Prompt saved successfully")
+    
+    return
 
     try:
         async for message in query(
