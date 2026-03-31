@@ -15,18 +15,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-if os.path.exists('../public/train.py'):
-    logger.info("Removing existing train.py file")
-    os.remove('../public/train.py')
-    
-if os.path.exists('../public/target_agent.py'):
-    logger.info("Removing existing target_agent.py file")
-    os.remove('../public/target_agent.py')
-    
-if os.path.exists('../public/agent_execution.json'):
-    logger.info("Removing existing agent_execution.json file")
-    os.remove('../public/agent_execution.json')
-
 TASK = open("../private/SAMPLE_TASK_DESCRIPTIONS.md").read()
 logger.info("Task loaded from task.md")
 
@@ -37,7 +25,7 @@ SAMPLE_AGENT_EXECUTION = json.load(open("../private/sample_agent_execution.json"
 logger.info("Sample agent execution loaded")
 
 
-PROMPT = f"""You are a meta-agent. Your task is to create a target agent which can execute a task. Go ahead a create a target_agent.py for the target agent which in turn can solve the task
+PROMPT = f"""You are a meta-agent. Your task is to create a target agent which can execute a task. Go ahead and create a target_agent.py for the target agent which in turn can solve the task
 
 Here are a couple of sample task descriptions which the target agent has to solve.
 {TASK}
