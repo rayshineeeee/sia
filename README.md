@@ -46,13 +46,14 @@ sia/
 ### Prerequisites
 
 1. **Python 3.11+** with venv support
-2. **MLE-Bench** installed:
+2. **Create a virtual environment** (recommended):
    ```bash
-   pip install mle-bench
+   python3 -m venv .venv
+   source .venv/bin/activate
    ```
-3. **Google Generative AI** (for Gemini API):
+3. **Install required dependencies** from `requirements.txt`:
    ```bash
-   pip install google-generativeai
+   pip install -r requirements.txt
    ```
 4. **Anthropic API key** set in environment:
    ```bash
@@ -63,16 +64,6 @@ sia/
    export GEMINI_API_KEY="your-gemini-api-key"
    ```
 
-### Installation
-
-```bash
-# Clone and navigate to the sia directory
-cd /path/to/sia
-
-# Install dependencies
-pip install google-generativeai mle-bench anthropic python-dotenv
-```
-
 ## Usage
 
 ### Step 1: Prepare Dataset
@@ -80,8 +71,7 @@ pip install google-generativeai mle-bench anthropic python-dotenv
 Use the `prepare_sia_dataset.py` script to prepare a competition dataset from MLE-Bench:
 
 ```bash
-cd orchestration
-python prepare_sia_dataset.py -c "spaceship-titanic"
+python orchestration/prepare_sia_dataset.py -c "spaceship-titanic"
 ```
 
 This will:
@@ -111,8 +101,7 @@ python prepare_sia_dataset.py -c "spaceship-titanic" --skip-gemini
 **IMPORTANT:** Always run the orchestrator from the `orchestration/` directory because it uses relative paths like `./tasks` and `./runs`.
 
 ```bash
-cd orchestration
-python orchestrator.py --task_dir ./tasks/spaceship-titanic --max_gen 3 --run_id 1
+python orchestration/orchestrator.py --task_dir ./tasks/spaceship-titanic --max_gen 3 --run_id 1
 ```
 
 **Arguments:**
@@ -148,24 +137,6 @@ cat runs/run_1/gen_2/improvement.md
 
 # Compare agent versions
 diff runs/run_1/gen_1/target_agent.py runs/run_1/gen_2/target_agent.py
-```
-
-## Example Workflow
-
-```bash
-# 1. Prepare dataset for a Kaggle competition
-cd orchestration
-python prepare_sia_dataset.py -c "spaceship-titanic"
-
-# 2. Verify the dataset structure
-ls -R ../tasks/spaceship-titanic/
-
-# 3. Run orchestrator for 3 generations
-python orchestrator.py --task_dir ./tasks/spaceship-titanic --max_gen 3 --run_id 1
-
-# 4. Check results
-ls -R ../runs/run_1/
-cat ../runs/run_1/gen_3/agent_execution.json
 ```
 
 ## Task Requirements
@@ -231,12 +202,6 @@ The prepare script will skip similar task generation. Either:
 - Set the environment variable: `export GEMINI_API_KEY="your-key"`
 - Use `--skip-gemini` flag to skip this step
 
-### "Reference agent not found at tasks/_shared/reference_target_agent.py"
-Create the `_shared` directory and add template files:
-```bash
-mkdir -p tasks/_shared
-# Copy your reference agent and sample execution JSON to this directory
-```
 
 ### Target agent fails during execution
 Check the logs in the generation directory:
@@ -277,55 +242,3 @@ The default model is `haiku` (claude-haiku-4-5-20251001). To use a different mod
 Edit the prompts in `orchestrator.py`:
 - `META_AGENT_PROMPT`: Controls how the initial agent is created
 - `FEEDBACK_AGENT_PROMPT`: Controls how improvements are suggested
-
-## Development
-
-### Running Tests
-
-```bash
-# Test dataset preparation
-python prepare_sia_dataset.py -c "spaceship-titanic" --skip-gemini
-
-# Test orchestrator with 1 generation
-python orchestrator.py --task_dir ./tasks/spaceship-titanic --max_gen 1 --run_id test
-```
-
-### Debugging
-
-Enable verbose logging:
-```python
-# In orchestrator.py
-logging.basicConfig(
-    level=logging.DEBUG,  # Change from INFO to DEBUG
-    format='%(asctime)s [%(levelname)s] %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S'
-)
-```
-
-## FAQ
-
-**Q: Can I run multiple experiments in parallel?**
-A: Yes, use different `--run_id` values for each experiment.
-
-**Q: How do I use a different competition?**
-A: Just run `prepare_sia_dataset.py -c "competition-name"` with any MLE-Bench competition ID.
-
-**Q: Can I modify the target agent manually between generations?**
-A: Yes, but it defeats the purpose of self-improvement. The system is designed to evolve autonomously.
-
-**Q: What if the meta-agent creates a broken target agent?**
-A: The feedback agent should identify issues and fix them in the next generation. If not, you may need to adjust the prompts or provide better examples.
-
-**Q: How much does it cost to run?**
-A: Depends on the model and task complexity. Using `haiku` (cheapest) for 3 generations typically costs $0.10-0.50 per run.
-
-## Contributing
-
-When adding new features:
-1. Test with a simple competition first (e.g., spaceship-titanic)
-2. Ensure the directory structure is preserved
-3. Update this README with new functionality
-
-## License
-
-See repository root for license information.
