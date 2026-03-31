@@ -15,38 +15,12 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-TASK = open("../private/SAMPLE_TASK_DESCRIPTIONS.md").read()
-logger.info("Task loaded from task.md")
 
-INITIAL_TARGET_AGENT_PY = open("../private/initial_target_agent.py").read()
-logger.info("Initial target agent loaded")
-
-SAMPLE_AGENT_EXECUTION = json.load(open("../private/sample_agent_execution.json"))
-logger.info("Sample agent execution loaded")
-
-
-PROMPT = f"""You are a meta-agent. Your task is to create a target agent which can execute a task. Go ahead and create a target_agent.py for the target agent which in turn can solve the task
-
-Here are a couple of sample task descriptions which the target agent has to solve.
-{TASK}
-
-Here is a sample target_agent.py
-{INITIAL_TARGET_AGENT_PY}
-
-Here is a sample agent execution trajectory:
-{json.dumps(SAMPLE_AGENT_EXECUTION, indent=2)}
-
-RULES:
-1. The current working directory is {Path(__file__).parent}. Create the target_agent.py in the current working directory itself
-2. The target_agent.py should accept a directory path as a command-line argument in its main block. This directory should contain the data folder and task.md file.
-3. The target_agent.py should log its execution trajectory to a JSON file named 'agent_execution.json'. This log should include all messages, tool calls, and their results. Use the same format as the sample agent execution trajectory provided above.
-"""
-
-async def main():
+async def run_agent(model_name, max_turns, prompt, agent_working_directory):
     logger.info("=" * 80)
-    logger.info("Starting agent execution with Claude Haiku model")
-    logger.info(f"Working directory: {Path(__file__).parent}")
-    logger.info(f"Max turns: 50")
+    logger.info(f"Starting agent execution with {model_name} model")
+    logger.info(f"Working directory: {agent_working_directory}")
+    logger.info(f"Max turns: {max_turns}")
     logger.info("=" * 80)
 
     turn_count = 0
@@ -54,13 +28,13 @@ async def main():
 
     try:
         async for message in query(
-            prompt=PROMPT,
+            prompt=prompt,
             options=ClaudeAgentOptions(
-                cwd=f"{Path(__file__).parent}",
+                cwd=agent_working_directory,
                 allowed_tools=["Bash", "Read", "Write", "Edit", "Glob"],
                 permission_mode="bypassPermissions",
-                max_turns=50,
-                model="haiku",
+                max_turns=max_turns,
+                model=model_name,
             ),
         ):
             logged_content = False
@@ -121,5 +95,3 @@ async def main():
         logger.error(f"ERROR: {str(e)}")
         logger.error(f"{'!' * 80}", exc_info=True)
         raise
-
-anyio.run(main)
