@@ -154,16 +154,30 @@ Here is a sample target_agent.py:
 Here is a sample agent execution trajectory:
 {json.dumps(SAMPLE_AGENT_EXECUTION, indent=2)}
 
-RULES:
-1. The current working directory is {META_AGENT_WORKING_DIRECTORY}. Create the target_agent.py in the current working directory itself.
-2. The target_agent.py must accept two command-line arguments: --dataset_dir (the absolute path to the dataset directory, which is strictly read-only), and --working_dir (the absolute path to the directory where the agent can write files, such as python scripts or execution logs).
-3. The target agent can only read from the dataset directory provided via --dataset_dir, and can write only in the runs directory specified by --working_dir.
-4. The target_agent.py should log its execution trajectory to a JSON file named 'agent_execution.json' in its working directory. This log should include all messages, tool calls, and their results. Use the same format as the sample agent execution trajectory provided above.
-5. Do not attempt to write to or modify files inside the dataset directory.
-6. The target_agent.py should use only the "haiku" or "claude-haiku-4-5-20251001" model from Anthropic/Claude when invoking the language model (do not use any other model).
+CRITICAL RULES - FOLLOW EXACTLY:
 
-Example invocation:
-    python target_agent.py --dataset_dir {os.path.abspath('./tasks/task_1/data/public')} --working_dir {os.path.abspath(META_AGENT_WORKING_DIRECTORY)}
+1. The current working directory is {META_AGENT_WORKING_DIRECTORY}. Create the target_agent.py in the current working directory itself.
+
+2. The target_agent.py MUST accept two command-line arguments:
+   - --dataset_dir: Absolute path to the dataset directory (READ-ONLY, provided at runtime)
+   - --working_dir: Absolute path to the working directory (WRITE-ONLY, provided at runtime)
+
+3. CRITICAL: The target_agent.py must INCLUDE these paths in the prompt it sends to Claude. Claude MUST be explicitly told:
+   - Where the dataset directory is located (the exact path from --dataset_dir)
+   - Where the working directory is located (the exact path from --working_dir)
+   - That it can ONLY READ from the dataset directory
+   - That it can ONLY WRITE to the working directory
+
+   DO NOT let Claude search for data in random locations. The prompt must say: "The dataset is at: <actual_dataset_dir_path>"
+
+4. The target agent can ONLY read from the dataset directory provided via --dataset_dir, and can ONLY write to the working directory specified by --working_dir. It must NOT access any other directories on the filesystem.
+5. The target_agent.py should log its execution trajectory to a JSON file named 'agent_execution.json' in its working directory. This log should include all messages, tool calls, and their results. Use the same format as the sample agent execution trajectory provided above. Make sure to properly close the JSON file to avoid corruption.
+6. Do NOT attempt to write to or modify files inside the dataset directory. It is READ-ONLY.
+7. The target_agent.py should use only the "haiku" or "claude-haiku-4-5-20251001" model from Anthropic/Claude when invoking the language model (do not use any other model).
+8. DO NOT hardcode any specific dataset paths in the target_agent.py code. The paths will be provided at runtime via command-line arguments and MUST be passed to Claude in the prompt.
+
+Example invocation (paths will vary at runtime):
+    python target_agent.py --dataset_dir /path/to/dataset --working_dir /path/to/working
 """
 
 FEEDBACK_AGENT_PROMPT = """You are an expert AI Engineer. Your task is to analyze an agent scaffold and its execution logs to suggest improvements to the scaffold.
@@ -183,18 +197,27 @@ Here is the task which you worked on:
 {TASK}
 ```
 
+Target Agent Execution Status:
+```
+{EXECUTION_STATUS}
+```
+
 Here is the agent execution trajectory:
 ```
 {AGENT_EXECUTION}
 ```
 
-Your task is to analyze the target_agent.py and identify improvements that could be made to it. 
+NOTE: The agent execution trajectory may be incomplete or contain errors if the target agent crashed or failed to complete its execution log properly. If you see an "error" field in the execution log, this indicates the log was malformed. In such cases, focus on improvements that would make the agent more robust and prevent such failures.
+
+Your task is to analyze the target_agent.py and identify improvements that could be made to it.
 
 RULES:
 - Focus on the structure, approach, and methodology of the target agent itself
 - Do NOT optimize for the specific task shown above
 - Instead, think about how to make the target agent more robust and generalizable across the variety of tasks shown in the sample task descriptions
-- Consider improvements to reasoning strategies, and overall agent architecture
+- Consider improvements to reasoning strategies, error handling, logging mechanisms, and overall agent architecture
+- If the execution failed (see Execution Status above), analyze the error messages carefully and suggest specific fixes to prevent such failures
+- If the execution log shows errors or is incomplete, suggest improvements to ensure the agent properly logs its execution and handles errors gracefully
 - Provide thoughtful recommendations for enhancing the target agent's capabilities across diverse tasks.
 - Consolidate all the improvements and write them to improvement.md in the current working directory: {IMPROVEMENT_DIR}
 - Once you have written improvement.md, go ahead and implement the improvements ONLY in target_agent.py. Do not create or modify any other files.
@@ -240,14 +263,68 @@ for current_gen in range(1, max_gen + 1):
 
     logger.info(f"Running target agent: {target_agent_path}")
 
-    subprocess.run([
-        os.path.join(venv_dir, "bin", "python"),
-        target_agent_path,
-        "--dataset_dir", ABS_DATASET_DIRECTORY,
-        "--working_dir", current_gen_directory
-    ], check=True)
+    # Track execution results for feedback agent
+    target_agent_success = True
+    target_agent_stdout = ""
+    target_agent_stderr = ""
+    target_agent_error_msg = ""
 
-    logger.info(f"Generation {current_gen} target agent execution completed")
+    # Create log file paths
+    stdout_log_file = os.path.join(current_gen_directory, "target_agent_stdout.log")
+    stderr_log_file = os.path.join(current_gen_directory, "target_agent_stderr.log")
+
+    logger.info(f"  → Stdout log: {stdout_log_file}")
+    logger.info(f"  → Stderr log: {stderr_log_file}")
+    logger.info(f"=" * 60)
+
+    # Run target agent with real-time output using shell redirection
+    try:
+        # Build command with tee for real-time display and logging
+        python_exec = os.path.join(venv_dir, "bin", "python")
+        command = f"{python_exec} -u {target_agent_path} --dataset_dir {ABS_DATASET_DIRECTORY} --working_dir {current_gen_directory} 2>&1 | tee {stdout_log_file}"
+
+        # Run with shell=True to enable pipes and tee
+        result = subprocess.run(
+            command,
+            shell=True,
+            text=True
+        )
+
+        return_code = result.returncode
+
+        # Read captured output from file for feedback agent
+        with open(stdout_log_file, 'r') as f:
+            target_agent_stdout = f.read()
+        # Since we're using 2>&1, stderr is merged into stdout
+        target_agent_stderr = ""
+
+        logger.info(f"=" * 60)
+
+        # Check if execution was successful
+        if return_code != 0:
+            target_agent_success = False
+            target_agent_error_msg = f"Target agent failed with exit code {return_code}"
+            logger.error(f"  ✗ Target agent execution failed with exit code {return_code}")
+            logger.warning(f"  → Continuing with feedback agent despite target agent failure")
+        else:
+            logger.info(f"Generation {current_gen} target agent execution completed successfully")
+
+    except FileNotFoundError:
+        logger.error(f"  ✗ Target agent file not found: {target_agent_path}")
+        logger.error(f"  → Cannot continue. Exiting.")
+        sys.exit(1)
+    except Exception as e:
+        target_agent_success = False
+        target_agent_error_msg = f"Unexpected error during target agent execution: {str(e)}"
+        logger.error(f"  ✗ {target_agent_error_msg}")
+        logger.warning(f"  → Continuing with feedback agent despite target agent failure")
+
+        # Try to read any partial logs
+        try:
+            with open(stdout_log_file, 'r') as f:
+                target_agent_stdout = f.read()
+        except:
+            pass  # If log files don't exist, keep empty strings
 
     # ========================
     # SECTION 5b: Run Feedback Agent (if not the last generation)
@@ -259,10 +336,54 @@ for current_gen in range(1, max_gen + 1):
         # Load artifacts produced by the target agent so the feedback prompt is fully populated.
         AGENT_PY = Path(current_gen_directory, "target_agent.py").read_text(encoding="utf-8")
         TASK = Path(DATASET_DIRECTORY, "task.md").read_text(encoding="utf-8")
-        with open(Path(current_gen_directory, "agent_execution.json"), "r", encoding="utf-8") as f:
-            AGENT_EXECUTION = json.load(f)
 
-        AGENT_EXECUTION_PRETTY = json.dumps(AGENT_EXECUTION, indent=2)
+        # Try to load agent_execution.json with error handling
+        agent_execution_path = Path(current_gen_directory, "agent_execution.json")
+        try:
+            with open(agent_execution_path, "r", encoding="utf-8") as f:
+                AGENT_EXECUTION = json.load(f)
+            AGENT_EXECUTION_PRETTY = json.dumps(AGENT_EXECUTION, indent=2)
+            logger.info(f"  ✓ Successfully loaded agent execution log")
+        except json.JSONDecodeError as e:
+            logger.warning(f"  ✗ Failed to parse agent_execution.json: {e}")
+            logger.warning(f"  → The target agent may have crashed or failed to complete the execution log")
+            logger.warning(f"  → Using fallback execution log for feedback agent")
+
+            # Read the raw content to see what we have
+            try:
+                with open(agent_execution_path, "r", encoding="utf-8") as f:
+                    raw_content = f.read()
+                logger.info(f"  → Raw file size: {len(raw_content)} bytes")
+
+                # Create a fallback execution structure
+                AGENT_EXECUTION = {
+                    "error": "Failed to parse execution log",
+                    "raw_content_preview": raw_content[:1000] if len(raw_content) > 1000 else raw_content,
+                    "parse_error": str(e)
+                }
+                AGENT_EXECUTION_PRETTY = json.dumps(AGENT_EXECUTION, indent=2)
+            except Exception as read_error:
+                logger.error(f"  ✗ Could not read agent_execution.json at all: {read_error}")
+                AGENT_EXECUTION = {"error": "Could not read execution log file"}
+                AGENT_EXECUTION_PRETTY = json.dumps(AGENT_EXECUTION, indent=2)
+        except FileNotFoundError:
+            logger.error(f"  ✗ agent_execution.json not found at {agent_execution_path}")
+            logger.error(f"  → The target agent did not create an execution log")
+            AGENT_EXECUTION = {"error": "Execution log file not found"}
+            AGENT_EXECUTION_PRETTY = json.dumps(AGENT_EXECUTION, indent=2)
+
+        # Prepare execution status for feedback agent
+        if target_agent_success:
+            execution_status = "SUCCESS: Target agent completed execution successfully."
+        else:
+            execution_status = f"""FAILED: {target_agent_error_msg}
+
+STDOUT:
+{target_agent_stdout}
+
+STDERR:
+{target_agent_stderr}
+"""
 
         # Prepare next generation directory
         next_gen = current_gen + 1
@@ -273,6 +394,7 @@ for current_gen in range(1, max_gen + 1):
             SAMPLE_TASK_DESCRIPTIONS=SAMPLE_TASK_DESCRIPTIONS,
             AGENT_PY=AGENT_PY,
             TASK=TASK,
+            EXECUTION_STATUS=execution_status,
             AGENT_EXECUTION=AGENT_EXECUTION_PRETTY,
             IMPROVEMENT_DIR=next_gen_directory,
         )
