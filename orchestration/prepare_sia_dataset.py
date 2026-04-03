@@ -19,6 +19,9 @@ import sys
 from pathlib import Path
 import google.generativeai as genai
 
+from dotenv import load_dotenv
+_ = load_dotenv()
+
 
 def run_mlebench_prepare(competition_id: str) -> bool:
     """Run mlebench prepare command for the given competition."""

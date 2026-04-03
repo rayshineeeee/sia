@@ -88,7 +88,7 @@ This will:
 
 **Example with custom directory:**
 ```bash
-python prepare_sia_dataset.py -c "house-prices-advanced-regression-techniques" --tasks-dir /path/to/tasks
+python prepare_sia_dataset.py -c  "spaceship-titanic" --tasks-dir /path/to/tasks
 ```
 
 **Skip Gemini (faster, no API call):**
@@ -98,7 +98,7 @@ python prepare_sia_dataset.py -c "spaceship-titanic" --skip-gemini
 
 ### Step 2: Run the Orchestrator
 
-**IMPORTANT:** Always run the orchestrator from the `orchestration/` directory because it uses relative paths like `./tasks` and `./runs`.
+**IMPORTANT:** Always run the orchestrator from the `sia/` directory because it uses relative paths like `./tasks` and `./runs`.
 
 ```bash
 python orchestration/orchestrator.py --task_dir ./tasks/spaceship-titanic --max_gen 3 --run_id 1
@@ -117,7 +117,7 @@ python orchestration/orchestrator.py --task_dir ./tasks/spaceship-titanic --max_
    - Feedback agent analyzes and creates improved agent for Gen 2
 
 2. **Generation 2-N:**
-   - Target agent from previous generation executes task
+   - Target agent from current generation executes task
    - Feedback agent analyzes and creates next generation
    - Continues until `max_gen` is reached
 

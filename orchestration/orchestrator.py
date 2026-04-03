@@ -41,15 +41,6 @@ runs/
     gen_2: (feedback_agent, target_agent_1) -> target_agent_2 -> gen_2
     gen_3: (feedback_agent, target_agent_2) -> target_agent_3 -> gen_3
 
-Workflow
-- Feedback agent gives feedback on how to improve the target agent.
-- 1a. The Meta Agent reads a scientific task and creates a `target_agent.py` in `TASK_PUBLIC_DIRECTORY`.
-
-LOOP START
-- 2a. The target agent works on the task autonomously and completes it.
-- 3a. The feedback agent goes through `TASK_PUBLIC_DIRECTORY`, creates feedback on how to improve the target agent,
-      and applies the feedback.
-LOOP END
 """
 
 import os
@@ -59,7 +50,7 @@ import asyncio
 import logging
 import argparse
 
-from meta_agent import run_agent
+from util import run_agent
 
 # Configure logging
 logging.basicConfig(
@@ -192,7 +183,7 @@ Here is a target_agent.py which you created earlier
 {AGENT_PY}
 ```
 
-Here is the task which you worked on:
+Here is the task which the target agent worked on:
 ```
 {TASK}
 ```
@@ -202,7 +193,7 @@ Target Agent Execution Status:
 {EXECUTION_STATUS}
 ```
 
-Here is the agent execution trajectory:
+Here is the target agent execution trajectory:
 ```
 {AGENT_EXECUTION}
 ```
