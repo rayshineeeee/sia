@@ -1,14 +1,20 @@
-# SIA (Self-Improving Agent)
+# SIA (Self-Improving Auto-researcher)
+Our goal is to build a self-improving AI scientist that can autonomously go ahead and improve its performance on scientific tasks. 
 
-An agent scaffolding system that uses meta-learning to evolve and improve AI agents across generations.
+## Results
+Add graphs here.
 
 ## Overview
 
-SIA creates AI agents that iteratively improve themselves through:
-1. **Meta-Agent**: Creates initial target agents from task descriptions
-2. **Target Agent**: Executes tasks and logs its performance
-3. **Feedback Agent**: Analyzes execution and suggests improvements
-4. **Evolution**: Each generation builds on learnings from previous iterations
+SIA operates by coordinating three main types of AI agents that work together to continuously improve task performance:
+
+### Glossary
+1. **Meta-Agent**: Reads the task description and generates an initial Target Agent tailored to the task.
+2. **Target Agent**: Attempts to complete the task and records its actions and results.
+3. **Feedback Agent**: Reviews the Target Agent's performance logs, identifies improvements, and updates the Target Agent accordingly.
+
+This iterative process allows the system to autonomously refine and enhance its ability to solve scientific tasks.
+
 
 ## Directory Structure
 
@@ -64,11 +70,16 @@ sia/
    export GEMINI_API_KEY="your-gemini-api-key"
    ```
 
-## Usage
+## Example Usage - Custom task
 
-### Step 1: Prepare Dataset
 
-Use the `prepare_sia_dataset.py` script to prepare a competition dataset from MLE-Bench:
+
+
+## Example Usage - Self improve a research task from MLE bench
+
+### Step 1: 
+
+Use the `prepare_sia_dataset.py` script to prepare a task dataset from MLE-Bench:
 
 ```bash
 python orchestration/prepare_sia_dataset.py -c "spaceship-titanic"
