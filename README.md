@@ -2,7 +2,17 @@
 Our goal is to build a self-improving AI scientist that can autonomously go ahead and improve its performance on scientific tasks. 
 
 ## Results
-Add graphs here.
+Below are example results showing progressive improvement of SIA on scientific tasks:
+
+<table width="100%">
+  <tr>
+    <td width="50%" align="center"><b>GPQA (Graduate-level Science QA)</b><br><img src="plots/gpqa.png" alt="GPQA Results" height="220"></td>
+    <td width="50%" align="center"><b>ML Agent Experiment</b><br><img src="plots/ml_agent.png" alt="ML Agent Results" height="220"></td>
+  </tr>
+</table>
+
+<p align="center"><i>Figure: Model performance plots show the improvement of SIA over multiple generations of self-improvement across tasks.</i></p>
+
 
 ## Overview
 
@@ -70,49 +80,62 @@ sia/
    export GEMINI_API_KEY="your-gemini-api-key"
    ```
 
-## Example Usage - Custom task
+## Example Usage - Custom Task
+
+### Running SIA on GPQA (Graduate level scientific Questions)
 
 
+#### Step 1: Set Up Your Custom Task Directory and Assets
 
+To create a new custom task (e.g., for GPQA), follow these streamlined steps:
 
-## Example Usage - Self improve a research task from MLE bench
+1. **Create the task directory structure:**
 
-### Step 1: 
+   ```bash
+   mkdir -p tasks/gpqa/{data/public,data/private,spec}
+   ```
 
-Use the `prepare_sia_dataset.py` script to prepare a task dataset from MLE-Bench:
+2. **Add your dataset and task description:**
 
-```bash
-python orchestration/prepare_sia_dataset.py -c "spaceship-titanic"
-```
+   - Place your dataset files in the appropriate folders:
+     - Public questions:
+       ```bash
+       cp questions.json tasks/gpqa/data/public/
+       ```
+     - Private answers, ground truths:
+       ```bash
+       cp answers.json tasks/gpqa/data/private/
+       ```
 
-This will:
-1. Run `mlebench prepare -c "spaceship-titanic"`
-2. Copy public and private datasets from `~/.cache/mle-bench/data/prepared/`
-3. Rename `description.md` to `task.md` in `data/public/`
-4. Use Gemini to generate similar tasks (optional)
-5. Create `SAMPLE_TASK_DESCRIPTIONS.md` in `spec/`
-6. Copy `reference_target_agent.py` from `_shared/` to `spec/`
+     **Note:** The LLM is NOT provided any context about the `private/` folder during evaluation. This prevents cheating and ensures fair assessment.
 
-**Options:**
-- `--skip-gemini`: Skip Gemini API call for similar tasks
-- `--tasks-dir PATH`: Specify custom tasks directory (default: `./tasks`)
+   - Write the task description in `tasks/gpqa/data/public/task.md`.  
+     Example content:
+     ```markdown
+     # GPQA - General Purpose Question Answering
 
-**Example with custom directory:**
-```bash
-python prepare_sia_dataset.py -c  "spaceship-titanic" --tasks-dir /path/to/tasks
-```
+     Answer graduate-level science questions across physics, chemistry, and biology.
+     Each question has multiple choice answers. Select the correct answer.
 
-**Skip Gemini (faster, no API call):**
-```bash
-python prepare_sia_dataset.py -c "spaceship-titanic" --skip-gemini
-```
+     ## Data Format
+     - questions.json: Contains questions with multiple choice options
+     ```
+
+3. **Copy the reference agent template:**
+
+   ```bash
+   cp tasks/_shared/reference_target_agent.py tasks/gpqa/spec/
+   ```
+
+4. **(Optional) Add sample task descriptions:**
+   You may create `tasks/gpqa/spec/SAMPLE_TASK_DESCRIPTIONS.md` with examples of similar tasks. This helps the agent generalize better and prevents overfitting to the specific task, if that is your intention.
+
+---
 
 ### Step 2: Run the Orchestrator
 
-**IMPORTANT:** Always run the orchestrator from the `sia/` directory because it uses relative paths like `./tasks` and `./runs`.
-
 ```bash
-python orchestration/orchestrator.py --task_dir ./tasks/spaceship-titanic --max_gen 3 --run_id 1
+python orchestration/orchestrator.py --task_dir ./tasks/gpqa --max_gen 5 --run_id 1
 ```
 
 **Arguments:**
@@ -169,37 +192,33 @@ tasks/{competition-id}/
     └── reference_target_agent.py      # Template agent structure
 ```
 
-### Creating Custom Tasks
+------
 
-If you want to add a custom task (not from MLE-Bench):
+### Running SIA on MLE-Bench task
 
-1. Create the directory structure manually:
-   ```bash
-   mkdir -p tasks/my-custom-task/{data/public,data/private,spec}
-   ```
+Use the `prepare_sia_dataset.py` script to prepare a task dataset from MLE-Bench:
 
-2. Add your datasets:
-   ```bash
-   cp train.csv test.csv tasks/my-custom-task/data/public/
-   cp ground_truth.csv tasks/my-custom-task/data/private/
-   ```
+```bash
+python orchestration/prepare_sia_dataset.py -c "spaceship-titanic"
+```
 
-3. Write task description:
-   ```bash
-   # Create task.md in data/public/
-   cat > tasks/my-custom-task/data/public/task.md << 'EOF'
-   # Task Description
+This will:
+1. Run `mlebench prepare -c "spaceship-titanic"`
+2. Copy public and private datasets from `~/.cache/mle-bench/data/prepared/`
+3. Rename `description.md` to `task.md` in `data/public/`
+4. Use Gemini to generate similar tasks (optional)
+5. Create `SAMPLE_TASK_DESCRIPTIONS.md` in `spec/`
+6. Copy `reference_target_agent.py` from `_shared/` to `spec/`
 
-   Your task description here...
-   EOF
-   ```
+**Options:**
+- `--skip-gemini`: Skip Gemini API call for similar tasks
+- `--tasks-dir PATH`: Specify custom tasks directory (default: `./tasks`)
 
-4. Copy templates:
-   ```bash
-   cp tasks/_shared/reference_target_agent.py tasks/my-custom-task/spec/
-   ```
 
 5. Optionally create `SAMPLE_TASK_DESCRIPTIONS.md` manually in `spec/`
+
+
+------
 
 ## Troubleshooting
 
