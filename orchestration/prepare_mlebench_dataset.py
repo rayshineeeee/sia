@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Script to prepare SIA dataset from MLE-Bench competitions.
+Script to prepare a task dataset from MLE-Bench competitions.
 
 This script:
 1. Runs mlebench prepare command on a competition
@@ -217,7 +217,7 @@ def copy_reference_agent(competition_id: str, tasks_dir: Path) -> bool:
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Prepare SIA dataset from MLE-Bench competition"
+        description="Prepare task dataset from MLE-Bench competition"
     )
     parser.add_argument(
         "-c", "--competition",

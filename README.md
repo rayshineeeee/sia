@@ -34,7 +34,7 @@ sia/
 │   ├── orchestrator.py           # Main orchestration logic
 │   ├── meta_agent.py             # Meta-agent implementation
 │   ├── feedback_agent.py         # Feedback agent implementation
-│   └── prepare_sia_dataset.py    # Dataset preparation script
+│   └── prepare_mlebench_dataset.py    # Dataset preparation script
 ├── tasks/
 │   ├── _shared/
 │   │   ├── reference_target_agent.py
@@ -80,9 +80,9 @@ sia/
    export GEMINI_API_KEY="your-gemini-api-key"
    ```
 
-## Example Usage - Custom Task
+## Example Usage
 
-### Running SIA on GPQA (Graduate level scientific Questions)
+### Using SIA to build SOTA Scientifc Reasoning Agent
 
 
 #### Step 1: Set Up Your Custom Task Directory and Assets
@@ -196,10 +196,10 @@ tasks/{competition-id}/
 
 ### Running SIA on MLE-Bench task
 
-Use the `prepare_sia_dataset.py` script to prepare a task dataset from MLE-Bench:
+Use the `prepare_mlebench_dataset.py` script to prepare a task dataset from MLE-Bench:
 
 ```bash
-python orchestration/prepare_sia_dataset.py -c "spaceship-titanic"
+python orchestration/prepare_mlebench_dataset.py -c "spaceship-titanic"
 ```
 
 This will:
