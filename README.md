@@ -16,12 +16,15 @@ Below are example results showing progressive improvement of SIA on scientific t
 
 ## Overview
 
+<p align="center"><img src="plots/flow.png" alt="SIA orchestration flow: Meta-Agent, Target Agent, and Feedback Agent across generations" width="720"></p>
+<p align="center"><i>Figure: How the orchestrator runs Meta-, Target, and Feedback agents over successive generations.</i></p>
+
 SIA operates by coordinating three main types of AI agents that work together to continuously improve task performance:
 
 ### Glossary
 1. **Meta-Agent**: Reads the task description and generates an initial Target Agent tailored to the task.
 2. **Target Agent**: Attempts to complete the task and records its actions and results.
-3. **Feedback Agent**: Reviews the Target Agent's performance logs, identifies improvements, and updates the Target Agent accordingly.
+3. **Feedback/Improvement Agent**: Reviews the Target Agent's performance logs, identifies improvements, and updates the Target Agent accordingly.
 
 This iterative process allows the system to autonomously refine and enhance its ability to solve scientific tasks.
 
@@ -39,7 +42,7 @@ sia/
 │   ├── _shared/
 │   │   ├── reference_target_agent.py
 │   │   └── sample_agent_execution.json
-│   └── {competition-id}/         # Created by prepare script
+│   └── {task-id}/
 │       ├── data/
 │       │   ├── public/           # Public dataset
 │       │   │   ├── task.md           # Task description
@@ -178,7 +181,7 @@ diff runs/run_1/gen_1/target_agent.py runs/run_1/gen_2/target_agent.py
 Each task directory must follow this structure:
 
 ```
-tasks/{competition-id}/
+tasks/{task-id}/
 ├── data/
 │   ├── public/
 │   │   ├── task.md                    # Task description (orchestrator reads this)
