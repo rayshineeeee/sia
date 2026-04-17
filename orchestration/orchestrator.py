@@ -3,8 +3,6 @@ Directory structure (conceptual)
 
 orchestration/
   orchestrator.py
-  feedback_agent.py
-  meta_agent.py
 
 tasks/
   task_1/
@@ -13,6 +11,8 @@ tasks/
       SAMPLE_TASK_DESCRIPTIONS.md
     data/
       public/
+        train.csv
+        test.csv
         task.md
       private/
   task_2/
@@ -32,15 +32,14 @@ runs/
     gen_1: (meta_agent, reference_target_agent) -> target_agent_1 -> gen_1
     gen_2: (feedback_agent, target_agent_1) -> target_agent_2 -> gen_2
     gen_3: (feedback_agent, target_agent_2) -> target_agent_3 -> gen_3
-  run_2/ (meta_agent, task_2)
+  run_2/ (unique meta_agent, unique feedback_agent, unique_task, reference_target_agent, config)
     gen_1: (meta_agent, reference_target_agent) -> target_agent_1 -> gen_1
     gen_2: (feedback_agent, target_agent_1) -> target_agent_2 -> gen_2
     gen_3: (feedback_agent, target_agent_2) -> target_agent_3 -> gen_3
-  run_3/ (meta_agent_2, task_2)
+  run_3/ (unique meta_agent, unique feedback_agent, unique_task, reference_target_agent, config)
     gen_1: (meta_agent, reference_target_agent) -> target_agent_1 -> gen_1
     gen_2: (feedback_agent, target_agent_1) -> target_agent_2 -> gen_2
     gen_3: (feedback_agent, target_agent_2) -> target_agent_3 -> gen_3
-
 """
 
 import os
@@ -65,16 +64,19 @@ parser = argparse.ArgumentParser(description='Run the orchestrator for agent evo
 parser.add_argument('--max_gen', type=int, default=3, help='Maximum number of generations to run (default: 3)')
 parser.add_argument('--run_id', type=int, default=1, help='Run ID for this experiment (default: 1)')
 parser.add_argument('--task_dir', type=str, required=True, help='Path to the task directory (e.g., ./tasks/task_1)')
+parser.add_argument('--task_model', type=str, default='claude-haiku-4-5-20251001', help='Model for the target agent to use (default: haiku)')
 args = parser.parse_args()
 
 max_gen = args.max_gen
 task_dir = args.task_dir
 run_id = args.run_id
+task_model = args.task_model
 
 logger.info(f"Configuration:")
 logger.info(f"  - Maximum generations: {max_gen}")
 logger.info(f"  - Task directory: {task_dir}")
 logger.info(f"  - Run ID: {run_id}")
+logger.info(f"  - Task model: {task_model}")
 
 
 # ========================
@@ -151,20 +153,20 @@ CRITICAL RULES - FOLLOW EXACTLY:
 
 2. The target_agent.py MUST accept two command-line arguments:
    - --dataset_dir: Absolute path to the dataset directory (READ-ONLY, provided at runtime)
-   - --working_dir: Absolute path to the working directory (WRITE-ONLY, provided at runtime)
+   - --working_dir: Absolute path to the working directory (READ-WRITE, provided at runtime)
 
 3. CRITICAL: The target_agent.py must INCLUDE these paths in the prompt it sends to Claude. Claude MUST be explicitly told:
    - Where the dataset directory is located (the exact path from --dataset_dir)
    - Where the working directory is located (the exact path from --working_dir)
    - That it can ONLY READ from the dataset directory
-   - That it can ONLY WRITE to the working directory
+   - That it can READ from and WRITE to the working directory
 
    DO NOT let Claude search for data in random locations. The prompt must say: "The dataset is at: <actual_dataset_dir_path>"
 
-4. The target agent can ONLY read from the dataset directory provided via --dataset_dir, and can ONLY write to the working directory specified by --working_dir. It must NOT access any other directories on the filesystem.
+4. The target agent can ONLY read from the dataset directory provided via --dataset_dir, and can read from and write to the working directory specified by --working_dir. It must NOT access any other directories on the filesystem.
 5. The target_agent.py should log its execution trajectory to a JSON file named 'agent_execution.json' in its working directory. This log should include all messages, tool calls, and their results. Use the same format as the sample agent execution trajectory provided above. Make sure to properly close the JSON file to avoid corruption.
 6. Do NOT attempt to write to or modify files inside the dataset directory. It is READ-ONLY.
-7. The target_agent.py should use only the "haiku" or "claude-haiku-4-5-20251001" model from Anthropic/Claude when invoking the language model (do not use any other model).
+7. The target_agent.py should use only the "{task_model}" model when invoking the language model (do not use any other model).
 8. DO NOT hardcode any specific dataset paths in the target_agent.py code. The paths will be provided at runtime via command-line arguments and MUST be passed to Claude in the prompt.
 
 Example invocation (paths will vary at runtime):
