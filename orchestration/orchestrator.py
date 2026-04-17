@@ -48,6 +48,8 @@ import json
 import asyncio
 import logging
 import argparse
+import time
+from datetime import datetime
 
 from util import run_agent
 
@@ -270,17 +272,22 @@ for current_gen in range(1, max_gen + 1):
     logger.info(f"  → Stderr log: {stderr_log_file}")
     logger.info(f"=" * 60)
 
+    # Start timing for this generation
+    generation_start_time = time.time()
+
     # Run target agent with real-time output using shell redirection
     try:
         # Build command with tee for real-time display and logging
+        # Use PIPEFAIL to catch failures in the python command
         python_exec = os.path.join(venv_dir, "bin", "python")
-        command = f"{python_exec} -u {target_agent_path} --dataset_dir {ABS_DATASET_DIRECTORY} --working_dir {current_gen_directory} 2>&1 | tee {stdout_log_file}"
+        command = f"set -o pipefail; {python_exec} -u {target_agent_path} --dataset_dir {ABS_DATASET_DIRECTORY} --working_dir {current_gen_directory} 2>&1 | tee {stdout_log_file}"
 
-        # Run with shell=True to enable pipes and tee
+        # Run with shell=True and bash to enable pipefail
         result = subprocess.run(
             command,
             shell=True,
-            text=True
+            text=True,
+            executable='/bin/bash'  # Use bash to support pipefail
         )
 
         return_code = result.returncode
@@ -300,7 +307,8 @@ for current_gen in range(1, max_gen + 1):
             logger.error(f"  ✗ Target agent execution failed with exit code {return_code}")
             logger.warning(f"  → Continuing with feedback agent despite target agent failure")
         else:
-            logger.info(f"Generation {current_gen} target agent execution completed successfully")
+            target_agent_success = True
+            logger.info(f"  ✓ Generation {current_gen} target agent execution completed successfully")
 
     except FileNotFoundError:
         logger.error(f"  ✗ Target agent file not found: {target_agent_path}")
@@ -318,6 +326,10 @@ for current_gen in range(1, max_gen + 1):
                 target_agent_stdout = f.read()
         except:
             pass  # If log files don't exist, keep empty strings
+
+    # Calculate execution duration
+    generation_duration = time.time() - generation_start_time
+    logger.info(f"  → Generation {current_gen} execution took {generation_duration:.2f} seconds")
 
     # ========================
     # SECTION 5b: Run Feedback Agent (if not the last generation)
