@@ -48,10 +48,13 @@ import json
 import asyncio
 import logging
 import argparse
+import glob
 import time
+from pathlib import Path
 from datetime import datetime
 
 from util import run_agent
+from context_manager import ContextManager
 
 # Configure logging
 logging.basicConfig(
@@ -61,24 +64,136 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+
+# ========================
+# HELPER FUNCTIONS
+# ========================
+
+def load_agent_execution(gen_directory):
+    """
+    Load execution logs with automatic format detection.
+
+    Supports two formats:
+    1. Single-file: gen_X/agent_execution.json (backwards compatible)
+    2. Multi-trajectory: gen_X/agent_execution/execution_q0.json, execution_q1.json, ...
+
+    Args:
+        gen_directory: Path to the generation directory
+
+    Returns:
+        tuple: (execution_data, is_multi_trajectory)
+            - execution_data: dict or list containing execution log(s)
+            - is_multi_trajectory: bool indicating if multi-trajectory format
+    """
+    execution_folder = os.path.join(gen_directory, "agent_execution")
+    execution_file = os.path.join(gen_directory, "agent_execution.json")
+
+    # Check for multi-trajectory folder first (new format)
+    if os.path.isdir(execution_folder):
+        logger.info(f"  → Detected multi-trajectory format (folder)")
+
+        files = sorted(glob.glob(os.path.join(execution_folder, "execution_q*.json")))
+
+        if not files:
+            logger.warning(f"  ✗ agent_execution/ folder exists but is empty")
+            return {"error": "Empty execution folder", "type": "multi-trajectory"}, True
+
+        # Load all trajectory files
+        trajectories = []
+        for f in files:
+            try:
+                with open(f, 'r', encoding='utf-8') as fp:
+                    trajectories.append(json.load(fp))
+            except json.JSONDecodeError as e:
+                logger.warning(f"  ✗ Failed to parse {os.path.basename(f)}: {e}")
+                trajectories.append({"error": str(e), "file": os.path.basename(f)})
+            except Exception as e:
+                logger.warning(f"  ✗ Error reading {os.path.basename(f)}: {e}")
+                trajectories.append({"error": str(e), "file": os.path.basename(f)})
+
+        logger.info(f"  ✓ Loaded {len(trajectories)} trajectory files")
+
+        return {
+            "trajectories": trajectories,
+            "count": len(trajectories),
+            "type": "multi-trajectory"
+        }, True
+
+    # Fall back to single file (old format, backwards compatible)
+    elif os.path.exists(execution_file):
+        logger.info(f"  → Detected single-file format")
+
+        try:
+            with open(execution_file, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            logger.info(f"  ✓ Successfully loaded agent execution log")
+            return data, False
+
+        except json.JSONDecodeError as e:
+            logger.warning(f"  ✗ Failed to parse agent_execution.json: {e}")
+            logger.warning(f"  → The target agent may have crashed or failed to complete")
+
+            # Return partial data for debugging
+            try:
+                with open(execution_file, 'r', encoding='utf-8') as f:
+                    raw = f.read()
+                return {
+                    "error": "Parse error",
+                    "raw_preview": raw[:1000],
+                    "parse_error": str(e),
+                    "file_size": len(raw)
+                }, False
+            except Exception as read_error:
+                return {
+                    "error": "Could not read file",
+                    "read_error": str(read_error)
+                }, False
+
+        except FileNotFoundError:
+            logger.error(f"  ✗ agent_execution.json not found")
+            return {"error": "Execution log file not found"}, False
+
+    # Neither exists
+    else:
+        logger.error(f"  ✗ No execution log found (neither file nor folder)")
+        return {"error": "Execution log not found"}, False
+
+
 # Parse command-line arguments
 parser = argparse.ArgumentParser(description='Run the orchestrator for agent evolution')
 parser.add_argument('--max_gen', type=int, default=3, help='Maximum number of generations to run (default: 3)')
 parser.add_argument('--run_id', type=int, default=1, help='Run ID for this experiment (default: 1)')
 parser.add_argument('--task_dir', type=str, required=True, help='Path to the task directory (e.g., ./tasks/task_1)')
-parser.add_argument('--task_model', type=str, default='claude-haiku-4-5-20251001', help='Model for the target agent to use (default: haiku)')
+parser.add_argument('--meta_model', type=str, default=None, help='Model to use for meta-agent (default: haiku for claude backend, gemini/gemini-3.1-pro-preview for openhands backend)')
+parser.add_argument('--task_model', type=str, default='claude-haiku-4-5-20251001', help='Model to use for target agent (default: claude-haiku-4-5-20251001)')
+parser.add_argument('--backend', type=str, default='claude', choices=['claude', 'openhands'], help='Agent backend to use: claude (Claude Code SDK) or openhands (OpenHands SDK) (default: claude)')
 args = parser.parse_args()
 
 max_gen = args.max_gen
 task_dir = args.task_dir
 run_id = args.run_id
+backend = args.backend
+
+# Set default meta_model based on backend if not explicitly provided
+if args.meta_model is None:
+    if backend == 'openhands':
+        meta_model = 'gemini/gemini-3.1-pro-preview'
+        logger.info("Using default OpenHands model: gemini/gemini-3.1-pro-preview")
+    else:
+        meta_model = 'haiku'
+        logger.info("Using default Claude model: haiku")
+else:
+    meta_model = args.meta_model
+
 task_model = args.task_model
 
 logger.info(f"Configuration:")
 logger.info(f"  - Maximum generations: {max_gen}")
 logger.info(f"  - Task directory: {task_dir}")
 logger.info(f"  - Run ID: {run_id}")
-logger.info(f"  - Task model: {task_model}")
+logger.info(f"  - Agent backend: {backend}")
+logger.info(f"  - Meta-agent model: {meta_model}")
+logger.info(f"  - Task-agent model: {task_model}")
 
 
 # ========================
@@ -95,6 +210,9 @@ logger.info("  ✓ Reference target agent loaded")
 
 SAMPLE_AGENT_EXECUTION = json.load(open(os.path.join(task_dir, "../_shared/sample_agent_execution.json")))
 logger.info("  ✓ Sample agent execution loaded")
+
+TASK_MD = open(os.path.join(task_dir, "data/public/task.md")).read()
+logger.info("  ✓ Task specification loaded")
 
 
 # ========================
@@ -131,7 +249,19 @@ pip_executable = os.path.join(venv_dir, "bin", "pip")
 
 # Install required packages: anthropic, python-dotenv
 logger.info("Installing required packages: anthropic, python-dotenv in the virtual environment")
-subprocess.run([pip_executable, "install", "anthropic", "python-dotenv"], check=True)
+subprocess.run([pip_executable, "install", "anthropic", "openai", "python-dotenv", "google-genai", "tqdm", "pydantic", "scikit-learn", "pandas", "numpy"], check=True)
+
+# Initialize Context Manager
+logger.info("Initializing context manager...")
+context_mgr = ContextManager(RUN_DIRECTORY, {
+    'task_dir': task_dir,
+    'meta_model': meta_model,
+    'task_model': task_model,
+    'backend': backend,
+    'max_gen': max_gen,
+})
+context_mgr.initialize()
+logger.info("  ✓ Context manager initialized")
 
 
 # ========================
@@ -140,10 +270,13 @@ subprocess.run([pip_executable, "install", "anthropic", "python-dotenv"], check=
 
 META_AGENT_PROMPT = f"""You are a meta-agent. Your task is to create a target agent which can execute a task. Go ahead and create a target_agent.py for the target agent, which in turn can solve the given task.
 
+Here is the FULL TASK SPECIFICATION that your target_agent.py will need to solve:
+{TASK_MD}
+
 Here are a couple of sample task descriptions which the target agent has to solve:
 {SAMPLE_TASK_DESCRIPTIONS}
 
-Here is a sample target_agent.py:
+Here is a sample target_agent.py showing the complete implementation pattern (READ THE ENTIRE FILE):
 {REFERENCE_TARGET_AGENT_PY}
 
 Here is a sample agent execution trajectory:
@@ -157,65 +290,138 @@ CRITICAL RULES - FOLLOW EXACTLY:
    - --dataset_dir: Absolute path to the dataset directory (READ-ONLY, provided at runtime)
    - --working_dir: Absolute path to the working directory (READ-WRITE, provided at runtime)
 
-3. CRITICAL: The target_agent.py must INCLUDE these paths in the prompt it sends to Claude. Claude MUST be explicitly told:
+3. CRITICAL: The target_agent.py must INCLUDE these paths in the prompt it sends to {task_model}. {task_model} MUST be explicitly told:
    - Where the dataset directory is located (the exact path from --dataset_dir)
    - Where the working directory is located (the exact path from --working_dir)
    - That it can ONLY READ from the dataset directory
    - That it can READ from and WRITE to the working directory
 
-   DO NOT let Claude search for data in random locations. The prompt must say: "The dataset is at: <actual_dataset_dir_path>"
+   DO NOT let {task_model} search for data in random locations. The prompt must say: "The dataset is at: <actual_dataset_dir_path>"
 
-4. The target agent can ONLY read from the dataset directory provided via --dataset_dir, and can read from and write to the working directory specified by --working_dir. It must NOT access any other directories on the filesystem.
-5. The target_agent.py should log its execution trajectory to a JSON file named 'agent_execution.json' in its working directory. This log should include all messages, tool calls, and their results. Use the same format as the sample agent execution trajectory provided above. Make sure to properly close the JSON file to avoid corruption.
+4. The target agent can ONLY read from the dataset directory provided via --dataset_dir, and can ONLY write to the working directory specified by --working_dir. It must NOT access any other directories on the filesystem.
+
+5. EXECUTION LOGGING - CRITICAL:
+
+   The target_agent.py must log its execution trajectory properly. The format depends on the task type:
+
+   **FOR TASKS WITH MULTIPLE INDEPENDENT SAMPLES** (e.g., GPQA with 198 questions, multiple test cases):
+   - Create a folder: agent_execution/ in the working directory
+   - Save each sample separately: execution_q0.json, execution_q1.json, execution_q2.json, etc.
+   - Each file contains the complete trajectory for that ONE sample only
+   - Files must be named sequentially: execution_q0.json, execution_q1.json, ...
+
+   **FOR TASKS WITH SINGLE EXECUTION** (e.g., building one ML model, analyzing one dataset):
+   - Save to a single file: agent_execution.json in the working directory
+   - File contains the complete execution trajectory
+
+   **HOW TO DETERMINE WHICH FORMAT**:
+   - Read the task description carefully
+   - If it mentions "independent items", "dataset with multiple records to process separately"
+     → Use multi-trajectory (folder with multiple files)
+   - If it's about "build a model", "analyze the dataset", "create one solution", "optimize one system"
+     → Use single-trajectory (one JSON file)
+
+   **FORMAT REQUIREMENTS** (both formats):
+   - Use the same format as the sample agent execution trajectory provided above
+   - Include all messages, tool calls, and their results
+   - Ensure valid JSON (properly close all arrays/objects)
+   - Make sure to properly close the JSON file(s) to avoid corruption
+
 6. Do NOT attempt to write to or modify files inside the dataset directory. It is READ-ONLY.
 7. The target_agent.py should use only the "{task_model}" model when invoking the language model (do not use any other model).
-8. DO NOT hardcode any specific dataset paths in the target_agent.py code. The paths will be provided at runtime via command-line arguments and MUST be passed to Claude in the prompt.
+8. DO NOT hardcode any specific dataset paths in the target_agent.py code. The paths will be provided at runtime via command-line arguments and MUST be passed to {task_model} in the prompt.
 
 Example invocation (paths will vary at runtime):
     python target_agent.py --dataset_dir /path/to/dataset --working_dir /path/to/working
 """
 
-FEEDBACK_AGENT_PROMPT = """You are an expert AI Engineer. Your task is to analyze an agent scaffold and its execution logs to suggest improvements to the scaffold.
+FEEDBACK_AGENT_PROMPT = """You are an expert AI Engineer analyzing agent scaffolds for iterative improvement.
 
-Here are a couple of sample task descriptions which the agent is designed to solve.
+**GENERATION CONTEXT**:
+- Current generation: {CURRENT_GEN}
+- Previous generations: {PREVIOUS_GENS}
+- Evolution history: {CONTEXT_MD_PATH}
+
+**BEFORE ANALYZING - READ THE FULL HISTORY**:
+1. Read {CONTEXT_MD_PATH} to understand:
+   - What improvements were tried in each previous generation
+   - Performance trends across generations
+   - What worked and what didn't work
+2. Review previous improvement.md files from earlier generations if helpful
+3. Don't repeat failed approaches from earlier generations
+4. Build upon successful patterns that improved performance
+
+---
+
+**SAMPLE TASK DESCRIPTIONS**:
 ```
 {SAMPLE_TASK_DESCRIPTIONS}
 ```
 
-Here is a target_agent.py which you created earlier
-```
+**CURRENT TARGET AGENT** (Generation {CURRENT_GEN}):
+```python
 {AGENT_PY}
 ```
 
-Here is the task which the target agent worked on:
+**TASK WORKED ON**:
 ```
 {TASK}
 ```
 
-Target Agent Execution Status:
+**EXECUTION STATUS**:
 ```
 {EXECUTION_STATUS}
 ```
 
-Here is the target agent execution trajectory:
-```
-{AGENT_EXECUTION}
-```
+**EXECUTION LOGS**:
+{EXECUTION_SECTION}
 
-NOTE: The agent execution trajectory may be incomplete or contain errors if the target agent crashed or failed to complete its execution log properly. If you see an "error" field in the execution log, this indicates the log was malformed. In such cases, focus on improvements that would make the agent more robust and prevent such failures.
+---
 
-Your task is to analyze the target_agent.py and identify improvements that could be made to it.
+**YOUR TASK**:
 
-RULES:
-- Focus on the structure, approach, and methodology of the target agent itself
-- Do NOT optimize for the specific task shown above
-- Instead, think about how to make the target agent more robust and generalizable across the variety of tasks shown in the sample task descriptions
-- Consider improvements to reasoning strategies, error handling, logging mechanisms, and overall agent architecture
-- If the execution failed (see Execution Status above), analyze the error messages carefully and suggest specific fixes to prevent such failures
-- If the execution log shows errors or is incomplete, suggest improvements to ensure the agent properly logs its execution and handles errors gracefully
-- Provide thoughtful recommendations for enhancing the target agent's capabilities across diverse tasks.
-- Consolidate all the improvements and write them to improvement.md in the current working directory: {IMPROVEMENT_DIR}
-- Once you have written improvement.md, go ahead and implement the improvements ONLY in target_agent.py. Do not create or modify any other files.
+You must create exactly TWO files in {IMPROVEMENT_DIR}/:
+1. improvement.md - Analysis and improvement plan
+2. target_agent.py - The improved agent implementation
+
+Follow these steps:
+
+**STEP 1: Analyze the execution**:
+   - For multi-trajectory: Look for patterns across all trajectories
+   - For single-trajectory: Analyze the full execution flow
+   - Identify what worked well and what failed
+   - Check for consistency and robustness
+
+**STEP 2: Review evolution history**:
+   - Read context.md to see the full evolution
+   - Understand what was tried in previous generations
+   - Build upon successful patterns
+   - Avoid repeating failed approaches
+
+**STEP 3: Write improvement.md**:
+   - MUST save to: {IMPROVEMENT_DIR}/improvement.md
+   - Document your analysis and planned improvements
+   - Focus on structural improvements to the agent scaffold
+   - Make the agent more robust and generalizable
+   - Don't optimize for this specific task
+   - Reference insights from previous generations if applicable
+
+**STEP 4: Create improved target_agent.py**:
+   - MUST save to: {IMPROVEMENT_DIR}/target_agent.py
+   - Implement the improvements documented in improvement.md
+   - Apply all the planned improvements from step 3
+   - Do not create or modify any other files besides these two
+
+**RULES**:
+- Focus on agent structure, not task-specific optimizations
+- Make the agent work well across diverse task types (see sample task descriptions)
+- If execution failed, fix the root cause
+- If multi-trajectory: ensure each trajectory is properly isolated and logged
+- Consider error handling, logging mechanisms, and robustness
+- Build upon successful patterns from previous generations (check context.md)
+- If execution log shows errors or is incomplete, suggest improvements to ensure proper logging
+
+NOTE: The agent execution log may be incomplete or contain errors if the target agent crashed. If you see an "error" field, focus on making the agent more robust to prevent such failures.
 """
 
 
@@ -223,11 +429,18 @@ RULES:
 # SECTION 4: Run Target Agent Creation (Meta-Agent)
 # ========================
 
+# Save the meta-agent prompt for debugging/transparency
+meta_agent_prompt_path = os.path.join(META_AGENT_WORKING_DIRECTORY, "meta_agent_prompt.txt")
+with open(meta_agent_prompt_path, 'w', encoding='utf-8') as f:
+    f.write(META_AGENT_PROMPT)
+logger.info(f"  ✓ Saved meta-agent prompt to: {meta_agent_prompt_path}")
+
 asyncio.run(run_agent(
-    model_name="haiku",
+    model_name=meta_model,
     max_turns="20",
     prompt=META_AGENT_PROMPT,
-    agent_working_directory=META_AGENT_WORKING_DIRECTORY
+    agent_working_directory=META_AGENT_WORKING_DIRECTORY,
+    backend=backend
 ))
 
 
@@ -278,7 +491,7 @@ for current_gen in range(1, max_gen + 1):
     # Run target agent with real-time output using shell redirection
     try:
         # Build command with tee for real-time display and logging
-        # Use PIPEFAIL to catch failures in the python command
+        # Use PIPEFAIL to catch failures in the python command, not just tee
         python_exec = os.path.join(venv_dir, "bin", "python")
         command = f"set -o pipefail; {python_exec} -u {target_agent_path} --dataset_dir {ABS_DATASET_DIRECTORY} --working_dir {current_gen_directory} 2>&1 | tee {stdout_log_file}"
 
@@ -329,7 +542,23 @@ for current_gen in range(1, max_gen + 1):
 
     # Calculate execution duration
     generation_duration = time.time() - generation_start_time
-    logger.info(f"  → Generation {current_gen} execution took {generation_duration:.2f} seconds")
+
+    # Check if improvement.md exists in current gen directory (created by previous feedback agent)
+    improvement_md_path = os.path.join(current_gen_directory, "improvement.md")
+
+    # Add generation to context (do this before feedback agent runs)
+    context_mgr.add_generation(
+        gen_num=current_gen,
+        gen_data={
+            'success': target_agent_success,
+            'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            'duration': generation_duration,
+            'agent_path': target_agent_path,
+            'gen_dir': current_gen_directory,
+            'improvement_path': improvement_md_path if os.path.exists(improvement_md_path) else None,
+            'execution_type': 'Multi-trajectory' if (os.path.isdir(os.path.join(current_gen_directory, "agent_execution"))) else 'Single',
+        }
+    )
 
     # ========================
     # SECTION 5b: Run Feedback Agent (if not the last generation)
@@ -342,49 +571,94 @@ for current_gen in range(1, max_gen + 1):
         AGENT_PY = Path(current_gen_directory, "target_agent.py").read_text(encoding="utf-8")
         TASK = Path(DATASET_DIRECTORY, "task.md").read_text(encoding="utf-8")
 
-        # Try to load agent_execution.json with error handling
-        agent_execution_path = Path(current_gen_directory, "agent_execution.json")
-        try:
-            with open(agent_execution_path, "r", encoding="utf-8") as f:
-                AGENT_EXECUTION = json.load(f)
-            AGENT_EXECUTION_PRETTY = json.dumps(AGENT_EXECUTION, indent=2)
-            logger.info(f"  ✓ Successfully loaded agent execution log")
-        except json.JSONDecodeError as e:
-            logger.warning(f"  ✗ Failed to parse agent_execution.json: {e}")
-            logger.warning(f"  → The target agent may have crashed or failed to complete the execution log")
-            logger.warning(f"  → Using fallback execution log for feedback agent")
+        # Load agent execution log (supports both single-file and multi-trajectory formats)
+        logger.info(f"Loading agent execution log...")
+        AGENT_EXECUTION, is_multi_trajectory = load_agent_execution(current_gen_directory)
 
-            # Read the raw content to see what we have
-            try:
-                with open(agent_execution_path, "r", encoding="utf-8") as f:
-                    raw_content = f.read()
-                logger.info(f"  → Raw file size: {len(raw_content)} bytes")
+        # Build execution section for the feedback prompt
+        if is_multi_trajectory:
+            # Multi-trajectory format
+            trajectory_count = AGENT_EXECUTION.get("count", 0)
+            trajectories = AGENT_EXECUTION.get("trajectories", [])
 
-                # Create a fallback execution structure
-                AGENT_EXECUTION = {
-                    "error": "Failed to parse execution log",
-                    "raw_content_preview": raw_content[:1000] if len(raw_content) > 1000 else raw_content,
-                    "parse_error": str(e)
-                }
-                AGENT_EXECUTION_PRETTY = json.dumps(AGENT_EXECUTION, indent=2)
-            except Exception as read_error:
-                logger.error(f"  ✗ Could not read agent_execution.json at all: {read_error}")
-                AGENT_EXECUTION = {"error": "Could not read execution log file"}
-                AGENT_EXECUTION_PRETTY = json.dumps(AGENT_EXECUTION, indent=2)
-        except FileNotFoundError:
-            logger.error(f"  ✗ agent_execution.json not found at {agent_execution_path}")
-            logger.error(f"  → The target agent did not create an execution log")
-            AGENT_EXECUTION = {"error": "Execution log file not found"}
-            AGENT_EXECUTION_PRETTY = json.dumps(AGENT_EXECUTION, indent=2)
+            # Calculate success/failure counts
+            # Successful trajectory = list of messages
+            # Failed trajectory = dict with "error" key
+            successful = sum(1 for t in trajectories if isinstance(t, list))
+            failed = sum(1 for t in trajectories if isinstance(t, dict) and t.get("error"))
+            # Note: failed might not equal trajectory_count - successful if there are unexpected formats
+
+            # Show first 3 trajectories as examples
+            sample_trajectories_text = ""
+            for idx, traj in enumerate(trajectories[:3]):
+                traj_json = json.dumps(traj, indent=2)
+                # Truncate if too long
+                if len(traj_json) > 1000:
+                    traj_json = traj_json[:1000] + "\n  ... (truncated)"
+                sample_trajectories_text += f"\n### Trajectory {idx}\n```json\n{traj_json}\n```\n"
+
+            execution_section = f"""
+**MULTI-TRAJECTORY EXECUTION**:
+
+The agent executed {trajectory_count} separate trajectories (e.g., different questions/samples).
+
+**Summary**:
+- Total trajectories: {trajectory_count}
+- Successful: {successful}
+- Failed: {failed}
+- Execution folder: {os.path.join(current_gen_directory, "agent_execution")}
+
+**Sample Trajectories** (first 3 shown, you can read others from the folder):
+{sample_trajectories_text}
+
+**To analyze all trajectories**:
+- Read files from: {os.path.join(current_gen_directory, "agent_execution")}
+- Files named: execution_q0.json, execution_q1.json, ..., execution_q{trajectory_count-1}.json
+
+**Analysis guidance**:
+- Look for common failure patterns across trajectories
+- Check if trajectories are properly isolated
+- Ensure consistent behavior across all samples
+"""
+        else:
+            # Single-trajectory format (backwards compatible)
+            execution_section = f"""
+Here is the target agent execution trajectory:
+```json
+{json.dumps(AGENT_EXECUTION, indent=2)}
+```
+
+NOTE: If you see an "error" field in the above JSON, it means the execution log was malformed or missing. Focus on making the agent more robust.
+"""
 
         # Prepare execution status for feedback agent
         if target_agent_success:
-            execution_status = "SUCCESS: Target agent completed execution successfully."
+            # Get last 10 lines of stdout for quick preview
+            stdout_lines = target_agent_stdout.split('\n')
+            last_10_lines = '\n'.join(stdout_lines[-10:]) if len(stdout_lines) > 10 else target_agent_stdout
+
+            execution_status = f"""SUCCESS: Target agent completed execution successfully.
+
+**Last 10 lines of output**:
+```
+{last_10_lines}
+```
+
+Full logs available at: {stdout_log_file}
+"""
         else:
+            # Get last 10 lines of stdout for quick preview
+            stdout_lines = target_agent_stdout.split('\n')
+            last_10_lines = '\n'.join(stdout_lines[-10:]) if len(stdout_lines) > 10 else target_agent_stdout
+
             execution_status = f"""FAILED: {target_agent_error_msg}
 
-STDOUT:
-{target_agent_stdout}
+**Last 10 lines of output**:
+```
+{last_10_lines}
+```
+
+Full logs available at: {stdout_log_file}
 
 STDERR:
 {target_agent_stderr}
@@ -394,23 +668,37 @@ STDERR:
         next_gen = current_gen + 1
         next_gen_directory = os.path.abspath(f"{RUN_DIRECTORY}/gen_{next_gen}")
 
-        # call feedback agent
+        # Build previous generations list
+        previous_gens_list = list(range(1, current_gen)) if current_gen > 1 else []
+        previous_gens_text = ", ".join(map(str, previous_gens_list)) if previous_gens_list else "None"
+
+        # Call feedback agent with full context
         feedback_agent_prompt_prepared = FEEDBACK_AGENT_PROMPT.format(
+            CURRENT_GEN=current_gen,
+            PREVIOUS_GENS=previous_gens_text,
+            CONTEXT_MD_PATH=os.path.join(RUN_DIRECTORY, "context.md"),
             SAMPLE_TASK_DESCRIPTIONS=SAMPLE_TASK_DESCRIPTIONS,
             AGENT_PY=AGENT_PY,
             TASK=TASK,
             EXECUTION_STATUS=execution_status,
-            AGENT_EXECUTION=AGENT_EXECUTION_PRETTY,
+            EXECUTION_SECTION=execution_section,
             IMPROVEMENT_DIR=next_gen_directory,
         )
 
         os.makedirs(next_gen_directory, exist_ok=True)
+
+        # Save the feedback agent prompt for debugging/transparency
+        feedback_prompt_path = os.path.join(next_gen_directory, "feedback_agent_prompt.txt")
+        with open(feedback_prompt_path, 'w', encoding='utf-8') as f:
+            f.write(feedback_agent_prompt_prepared)
+        logger.info(f"  ✓ Saved feedback agent prompt to: {feedback_prompt_path}")
         asyncio.run(
             run_agent(
-                model_name="haiku",
+                model_name=meta_model,
                 max_turns="20",
                 prompt=feedback_agent_prompt_prepared,
                 agent_working_directory=next_gen_directory,
+                backend=backend
             )
         )
 
@@ -418,7 +706,12 @@ STDERR:
     else:
         logger.info(f"Generation {current_gen} is the final generation. Skipping feedback agent.")
 
+# Finalize context with summary statistics
+logger.info("Finalizing context.md with summary statistics...")
+context_mgr.finalize()
+
 logger.info(f"=" * 80)
 logger.info(f"Orchestrator completed all {max_gen} generations successfully!")
 logger.info(f"Results saved in: {RUN_DIRECTORY}")
+logger.info(f"Context summary: {os.path.join(RUN_DIRECTORY, 'context.md')}")
 logger.info(f"=" * 80)
