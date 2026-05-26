@@ -9,7 +9,6 @@ Each record comes from a real Chinese criminal case. The case description (事�
 ## Data
 
 - **test.csv** — in `dataset_dir`; 913 cases to predict (`id`, `text` only)
-- **`{dataset_dir}/../private/test.csv`** — ground-truth `label` per `id` (evaluation only; do not read during solving)
 - **sample_submission.csv** — correct submission format
 - **classes.json** — exhaustive list of all 191 valid charge labels
 
@@ -17,19 +16,11 @@ Each record comes from a real Chinese criminal case. The case description (事�
 
 **Maximize accuracy** (correct / attempted) across all 913 test cases.
 
-## Evaluation (required)
+## Evaluation
 
-After writing `submission.csv`, score it against the private labels and log the result. Do not stop at generating predictions alone.
+Your submission will be **automatically evaluated by the orchestrator** after you complete your work.
 
-- **`dataset_dir`** points at the public data directory (`.../data/public`). Read inputs from here (`test.csv`, `classes.json`, etc.).
-- **Ground truth** is at `{dataset_dir}/../private/test.csv` (sibling `private/` folder, not inside `dataset_dir`).
-- Compare your `{working_dir}/submission.csv` to that file on `id`, then write the final accuracy to **`{working_dir}/score.txt`**.
-
-Use this line format in `score.txt` (orchestrator parses it):
-
-```
-Accuracy : 0.1234  (112/913)
-```
+- Save your predictions as `submission.csv` to your `working_dir`
 
 ## Constraints
 
