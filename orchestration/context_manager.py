@@ -324,20 +324,26 @@ class ContextManager:
         """Extract performance metrics from various sources"""
         metrics = {}
 
-        # Priority 1: results.json
+        # Priority 1: results.json - load ALL fields generically
         results_path = os.path.join(gen_dir, 'results.json')
         if os.path.exists(results_path):
             try:
                 with open(results_path, 'r', encoding='utf-8') as f:
                     data = json.load(f)
-                    if 'accuracy' in data:
-                        metrics['accuracy'] = data['accuracy']
-                    if 'correct' in data:
-                        metrics['correct'] = data['correct']
-                    if 'total_questions' in data:
-                        metrics['total'] = data['total_questions']
-                    if 'total_tokens' in data:
-                        metrics['total_tokens'] = data['total_tokens']
+                    # Extract all top-level scalar values (skip nested dicts/lists for now)
+                    for key, value in data.items():
+                        if isinstance(value, (int, float, str, bool)):
+                            metrics[key] = value
+                        # For common nested structures, try to extract useful info
+                        elif key == 'per_class' and isinstance(value, dict):
+                            # Skip per_class details, too verbose for context
+                            continue
+                        elif isinstance(value, dict):
+                            # Skip other nested dicts
+                            continue
+                        elif isinstance(value, list) and len(value) > 0:
+                            # Skip lists
+                            continue
             except Exception as e:
                 print(f"Warning: Could not parse results.json: {e}")
 
@@ -347,8 +353,10 @@ class ContextManager:
             try:
                 with open(detailed_results_path, 'r', encoding='utf-8') as f:
                     data = json.load(f)
-                    if 'overall_accuracy' in data:
-                        metrics['accuracy'] = data['overall_accuracy']
+                    # Extract all top-level scalar values
+                    for key, value in data.items():
+                        if isinstance(value, (int, float, str, bool)):
+                            metrics[key] = value
             except Exception as e:
                 print(f"Warning: Could not parse detailed_results.json: {e}")
 

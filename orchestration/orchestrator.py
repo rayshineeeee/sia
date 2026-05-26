@@ -159,6 +159,99 @@ def load_agent_execution(gen_directory):
         return {"error": "Execution log not found"}, False
 
 
+def run_evaluation(gen_directory, task_dir, venv_dir):
+    """
+    Run evaluate.py if it exists in the task's public data directory.
+
+    Args:
+        gen_directory: Path to the generation directory containing submission files
+        task_dir: Path to the task directory
+        venv_dir: Path to the virtual environment
+
+    Returns:
+        dict: Evaluation results or error information
+    """
+    # Look for evaluate.py in data/public/ first, then fall back to task_dir
+    evaluate_script = os.path.join(task_dir, "data/public/evaluate.py")
+    if not os.path.exists(evaluate_script):
+        evaluate_script = os.path.join(task_dir, "evaluate.py")
+
+    # Check if evaluate.py exists
+    if not os.path.exists(evaluate_script):
+        logger.info(f"  → No evaluate.py found in {task_dir}, skipping evaluation")
+        return {"status": "skipped", "reason": "evaluate.py not found"}
+
+    logger.info(f"Running evaluation script: {evaluate_script}")
+
+    # Create evaluation log file
+    eval_log_file = os.path.join(gen_directory, "evaluation.log")
+    logger.info(f"  → Evaluation log: {eval_log_file}")
+
+    # Run evaluate.py as subprocess with --gen-dir
+    try:
+        python_exec = os.path.join(venv_dir, "bin", "python")
+        command = f"{python_exec} {evaluate_script} --gen-dir {gen_directory} 2>&1 | tee {eval_log_file}"
+
+        result = subprocess.run(
+            command,
+            shell=True,
+            text=True,
+            executable='/bin/bash'
+        )
+
+        # Read evaluation log
+        with open(eval_log_file, 'r') as f:
+            eval_output = f.read()
+
+        if result.returncode != 0:
+            logger.error(f"  ✗ Evaluation failed with exit code {result.returncode}")
+            return {
+                "status": "error",
+                "reason": f"evaluate.py exited with code {result.returncode}",
+                "log_path": eval_log_file,
+                "output": eval_output
+            }
+
+        # Check if results.json was created
+        results_json_path = os.path.join(gen_directory, "results.json")
+        if os.path.exists(results_json_path):
+            logger.info(f"  ✓ Evaluation completed successfully")
+            logger.info(f"  ✓ Results saved to: {results_json_path}")
+
+            # Load and log results
+            try:
+                with open(results_json_path, 'r') as f:
+                    results = json.load(f)
+                logger.info(f"    Results: {json.dumps(results, indent=2)}")
+            except:
+                pass
+
+            return {
+                "status": "success",
+                "log_path": eval_log_file,
+                "results_path": results_json_path,
+                "output": eval_output
+            }
+        else:
+            logger.warning(f"  ⚠ Evaluation completed but results.json not found")
+            return {
+                "status": "warning",
+                "reason": "results.json not created by evaluate.py",
+                "log_path": eval_log_file,
+                "output": eval_output
+            }
+
+    except Exception as e:
+        logger.error(f"  ✗ Unexpected error during evaluation: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        return {
+            "status": "error",
+            "reason": str(e),
+            "traceback": traceback.format_exc()
+        }
+
+
 # Parse command-line arguments
 parser = argparse.ArgumentParser(description='Run the orchestrator for agent evolution')
 parser.add_argument('--max_gen', type=int, default=3, help='Maximum number of generations to run (default: 3)')
@@ -543,6 +636,15 @@ for current_gen in range(1, max_gen + 1):
     # Calculate execution duration
     generation_duration = time.time() - generation_start_time
 
+    # ========================
+    # SECTION 5a.1: Run Evaluation (if evaluate.py exists)
+    # ========================
+
+    logger.info(f"=" * 60)
+    logger.info("Running evaluation (if available)...")
+    evaluation_result = run_evaluation(current_gen_directory, task_dir, venv_dir)
+    logger.info(f"=" * 60)
+
     # Check if improvement.md exists in current gen directory (created by previous feedback agent)
     improvement_md_path = os.path.join(current_gen_directory, "improvement.md")
 
@@ -631,6 +733,25 @@ Here is the target agent execution trajectory:
 NOTE: If you see an "error" field in the above JSON, it means the execution log was malformed or missing. Focus on making the agent more robust.
 """
 
+        # Load evaluation results if available
+        eval_results_section = ""
+        results_json_path = os.path.join(current_gen_directory, "results.json")
+        if os.path.exists(results_json_path):
+            try:
+                with open(results_json_path, 'r', encoding='utf-8') as f:
+                    eval_data = json.load(f)
+                eval_results_section = f"""
+
+**EVALUATION RESULTS**:
+```json
+{json.dumps(eval_data, indent=2)}
+```
+"""
+            except Exception as e:
+                eval_results_section = f"\n**EVALUATION RESULTS**: Error loading results.json: {e}\n"
+        else:
+            eval_results_section = "\n**EVALUATION RESULTS**: No results.json found (evaluation may not have run or may have failed)\n"
+
         # Prepare execution status for feedback agent
         if target_agent_success:
             # Get last 10 lines of stdout for quick preview
@@ -638,6 +759,7 @@ NOTE: If you see an "error" field in the above JSON, it means the execution log 
             last_10_lines = '\n'.join(stdout_lines[-10:]) if len(stdout_lines) > 10 else target_agent_stdout
 
             execution_status = f"""SUCCESS: Target agent completed execution successfully.
+{eval_results_section}
 
 **Last 10 lines of output**:
 ```
@@ -652,6 +774,7 @@ Full logs available at: {stdout_log_file}
             last_10_lines = '\n'.join(stdout_lines[-10:]) if len(stdout_lines) > 10 else target_agent_stdout
 
             execution_status = f"""FAILED: {target_agent_error_msg}
+{eval_results_section}
 
 **Last 10 lines of output**:
 ```
