@@ -55,10 +55,43 @@ import time
 import traceback
 import venv
 from datetime import datetime
+from importlib.resources import files as resource_files
 from pathlib import Path
 
+from sia import __version__
 from sia.context_manager import ContextManager
 from sia.util import run_agent
+
+# Tasks that ship inside the wheel via package-data (sia/tasks/<name>/...).
+BUNDLED_TASKS = ("gpqa", "lawbench", "longcot-chess", "spaceship-titanic")
+
+
+def resolve_task_dir(task: str | None, task_dir: str | None) -> tuple[str, str]:
+    """Resolve --task / --task_dir to a (task_dir, shared_dir) pair of real paths.
+
+    - --task <name>  → bundled sia/tasks/<name>/, shared_dir = bundled sia/tasks/_shared/
+    - --task_dir P   → P, shared_dir = P/../_shared/ if present else bundled _shared/
+    """
+    bundled_root = Path(str(resource_files("sia.tasks")))
+    bundled_shared = bundled_root / "_shared"
+
+    if task:
+        resolved = bundled_root / task
+        if not resolved.is_dir():
+            available = ", ".join(BUNDLED_TASKS)
+            raise SystemExit(f"Bundled task '{task}' not found. Available: {available}")
+        return str(resolved), str(bundled_shared)
+
+    if task_dir:
+        resolved = Path(task_dir).resolve()
+        if not resolved.is_dir():
+            raise SystemExit(f"Task directory does not exist: {task_dir}")
+        external_shared = resolved.parent / "_shared"
+        shared = external_shared if external_shared.is_dir() else bundled_shared
+        return str(resolved), str(shared)
+
+    raise SystemExit("Either --task or --task_dir must be provided")
+
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
@@ -236,12 +269,43 @@ def run_evaluation(gen_directory, task_dir, venv_dir):
         return {"status": "error", "reason": str(e), "traceback": traceback.format_exc()}
 
 
+def _print_welcome():
+    banner = rf"""
+     _______. __       ___
+    /       ||  |     /   \
+   |   (----`|  |    /  ^  \
+    \   \    |  |   /  /_\  \
+.----)   |   |  |  /  _____  \
+|_______/    |__| /__/     \__\
+
+    Self-Improving Auto-researcher — an autonomous AI scientist
+
+    • Version : v{__version__}
+    • Docs    : https://github.com/hexo-ai/sia
+    • Help    : sia --help
+"""
+    print(banner)
+
+
 def main():
+    _print_welcome()
+
     # Parse command-line arguments
     parser = argparse.ArgumentParser(description="Run the orchestrator for agent evolution")
     parser.add_argument("--max_gen", type=int, default=3, help="Maximum number of generations to run (default: 3)")
     parser.add_argument("--run_id", type=int, default=1, help="Run ID for this experiment (default: 1)")
-    parser.add_argument("--task_dir", type=str, required=True, help="Path to the task directory (e.g., ./tasks/task_1)")
+    task_group = parser.add_mutually_exclusive_group(required=True)
+    task_group.add_argument(
+        "--task",
+        type=str,
+        choices=BUNDLED_TASKS,
+        help=f"Name of a bundled task shipped with sia-agent ({', '.join(BUNDLED_TASKS)})",
+    )
+    task_group.add_argument(
+        "--task_dir",
+        type=str,
+        help="Path to an external task directory (e.g., ./tasks/my-task)",
+    )
     parser.add_argument(
         "--meta_model",
         type=str,
@@ -264,7 +328,7 @@ def main():
     args = parser.parse_args()
 
     max_gen = args.max_gen
-    task_dir = args.task_dir
+    task_dir, shared_dir = resolve_task_dir(args.task, args.task_dir)
     run_id = args.run_id
     backend = args.backend
 
@@ -301,7 +365,7 @@ def main():
     REFERENCE_TARGET_AGENT_PY = Path(task_dir, "reference/reference_target_agent.py").read_text()
     logger.info("  ✓ Reference target agent loaded")
 
-    with open(os.path.join(task_dir, "../_shared/sample_agent_execution.json")) as f:
+    with open(os.path.join(shared_dir, "sample_agent_execution.json")) as f:
         SAMPLE_AGENT_EXECUTION = json.load(f)
     logger.info("  ✓ Sample agent execution loaded")
 

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sia-agent"
-version = "0.2.0"
+version = "0.2.1"
 description = "SIA: Self-Improving Auto-researcher — an autonomous AI scientist framework"
 readme = "README.md"
 license = "MIT"
@@ -46,9 +46,21 @@ Repository = "https://github.com/hexo-ai/sia"
 [tool.setuptools.packages.find]
 include = ["sia*"]
 
+[tool.setuptools.package-data]
+"sia.tasks" = [
+    "_shared/*",
+    "*/data/public/**/*",
+    "*/data/private/**/*",
+    "*/data/training_data/**/*",
+    "*/reference/**/*",
+]
+
 [tool.ruff]
 target-version = "py311"
 line-length = 120
+# Task reference agents and sample executions are shipped as template data,
+# read by the meta-agent as text. They are not part of the package source.
+extend-exclude = ["sia/tasks/"]
 
 [tool.ruff.lint]
 select = [
@@ -71,6 +83,11 @@ known-first-party = ["sia"]
 
 [tool.ty.environment]
 python-version = "3.11"
+
+[tool.ty.src]
+# Task reference agents are shipped as templates (read as text by the meta-agent),
+# not as importable source. Skip type-checking them.
+exclude = ["sia/tasks/"]
 
 [tool.ty.rules]
 not-iterable = "ignore"        # false positive on guarded attribute access

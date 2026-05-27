@@ -217,7 +217,10 @@ def main():
     parser = argparse.ArgumentParser(description="Prepare task dataset from MLE-Bench competition")
     parser.add_argument("-c", "--competition", required=True, help="Competition ID (e.g., 'spaceship-titanic')")
     parser.add_argument(
-        "--tasks-dir", type=Path, default=Path("./tasks"), help="Base tasks directory (default: ./tasks)"
+        "--tasks-dir",
+        type=Path,
+        default=Path("./sia/tasks"),
+        help="Base tasks directory (default: ./sia/tasks)",
     )
     parser.add_argument("--skip-gemini", action="store_true", help="Skip Gemini API call for similar tasks")
 

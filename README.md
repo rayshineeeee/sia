@@ -33,24 +33,24 @@ This iterative process allows the system to autonomously refine and enhance its 
 
 ```
 sia/
-├── orchestration/
+├── sia/
 │   ├── orchestrator.py           # Main orchestration logic
-│   ├── meta_agent.py             # Meta-agent implementation
-│   ├── feedback_agent.py         # Feedback agent implementation
-│   └── prepare_mlebench_dataset.py    # Dataset preparation script
-├── tasks/
-│   ├── _shared/
-│   │   ├── reference_target_agent.py
-│   │   └── sample_agent_execution.json
-│   └── {task-id}/
-│       ├── data/
-│       │   ├── public/           # Public dataset
-│       │   │   ├── task.md           # Task description
-│       │   │   └── *.csv             # Data files
-│       │   └── private/          # Private dataset
-│       └── reference/
-│           ├── SAMPLE_TASK_DESCRIPTIONS.md
-│           └── reference_target_agent.py
+│   ├── context_manager.py        # Run/context tracking
+│   ├── util.py                   # Agent runner utilities
+│   ├── prepare_mlebench_dataset.py    # Dataset preparation script
+│   └── tasks/                    # Bundled with the wheel
+│       ├── _shared/
+│       │   ├── reference_target_agent.py
+│       │   └── sample_agent_execution.json
+│       └── {task-id}/            # gpqa, lawbench, longcot-chess, spaceship-titanic
+│           ├── data/
+│           │   ├── public/       # Public dataset
+│           │   │   ├── task.md       # Task description
+│           │   │   └── *.csv         # Data files
+│           │   └── private/      # Private evaluation data
+│           └── reference/
+│               ├── SAMPLE_TASK_DESCRIPTIONS.md
+│               └── reference_target_agent.py
 └── runs/                         # Generated during execution
     └── run_{id}/
         ├── venv/                 # Isolated Python environment
@@ -70,9 +70,16 @@ sia/
    python3 -m venv .venv
    source .venv/bin/activate
    ```
-3. **Install required dependencies** from `requirements.txt`:
+3. **Install sia-agent** from PyPI (recommended) — this ships the four built-in tasks with the wheel:
    ```bash
-   pip install -r requirements.txt
+   pip install 'sia-agent[claude]'
+   # or, for the OpenHands backend:
+   pip install 'sia-agent[openhands]'
+   ```
+
+   For development from a clone of this repo:
+   ```bash
+   pip install -e '.[dev,claude]'
    ```
 4. **API Keys**: Set the appropriate API keys based on which backend and models you plan to use:
 
@@ -100,17 +107,26 @@ sia/
 
 ## Example Usage
 
-### Using SIA to build SOTA Scientifc Reasoning Agent
+### Quick start — run a bundled task
 
+The wheel ships with four ready-to-run tasks: `gpqa`, `lawbench`, `longcot-chess`, `spaceship-titanic`.
+
+```bash
+sia --task gpqa --max_gen 2 --run_id 1
+```
+
+That's it — no clone, no dataset setup. To use a different bundled task, swap the name (e.g., `--task spaceship-titanic`).
+
+### Using SIA to build a custom task
+
+If you want to run SIA on your own dataset, prepare a task directory with the layout below and point `--task_dir` at it.
 
 #### Step 1: Set Up Your Custom Task Directory and Assets
-
-To create a new custom task (e.g., for GPQA), follow these streamlined steps:
 
 1. **Create the task directory structure:**
 
    ```bash
-   mkdir -p tasks/gpqa/{data/public,data/private,reference}
+   mkdir -p my-tasks/gpqa/{data/public,data/private,reference}
    ```
 
 2. **Add your dataset and task description:**
@@ -118,49 +134,44 @@ To create a new custom task (e.g., for GPQA), follow these streamlined steps:
    - Place your dataset files in the appropriate folders:
      - Public questions:
        ```bash
-       cp questions.json tasks/gpqa/data/public/
+       cp questions.json my-tasks/gpqa/data/public/
        ```
      - Private answers, ground truths:
        ```bash
-       cp answers.json tasks/gpqa/data/private/
+       cp answers.json my-tasks/gpqa/data/private/
        ```
 
      **Note:** The LLM is NOT provided any context about the `private/` folder during evaluation. This prevents cheating and ensures fair assessment.
 
-   - Write the task description in `tasks/gpqa/data/public/task.md`.  
-     Example content:
-     ```markdown
-     # GPQA - General Purpose Question Answering
+   - Write the task description in `my-tasks/gpqa/data/public/task.md`.
 
-     Answer graduate-level science questions across physics, chemistry, and biology.
-     Each question has multiple choice answers. Select the correct answer.
-
-     ## Data Format
-     - questions.json: Contains questions with multiple choice options
-     ```
-
-3. **Copy the reference agent template:**
+3. **Copy the reference agent template** (from a clone of this repo):
 
    ```bash
-   cp tasks/_shared/reference_target_agent.py tasks/gpqa/reference/
+   cp sia/tasks/_shared/reference_target_agent.py my-tasks/gpqa/reference/
    ```
 
 4. **(Optional) Add sample task descriptions:**
-   You may create `tasks/gpqa/reference/SAMPLE_TASK_DESCRIPTIONS.md` with examples of similar tasks. This helps the agent generalize better and prevents overfitting to the specific task, if that is your intention.
+   You may create `my-tasks/gpqa/reference/SAMPLE_TASK_DESCRIPTIONS.md` with examples of similar tasks. This helps the agent generalize better and prevents overfitting to the specific task, if that is your intention.
 
 ---
 
 ### Step 2: Run the Orchestrator
 
-**Basic Usage (Claude backend):**
+**Bundled task (Claude backend):**
 ```bash
-python orchestration/orchestrator.py --task_dir ./tasks/gpqa --max_gen 5 --run_id 1
+sia --task gpqa --max_gen 5 --run_id 1
+```
+
+**External custom task:**
+```bash
+sia --task_dir ./my-tasks/gpqa --max_gen 5 --run_id 1
 ```
 
 **Using OpenHands with Gemini:**
 ```bash
-python orchestration/orchestrator.py \
-  --task_dir ./tasks/gpqa \
+sia \
+  --task gpqa \
   --max_gen 5 \
   --run_id 1 \
   --backend openhands \
@@ -168,7 +179,8 @@ python orchestration/orchestrator.py \
 ```
 
 **Key Arguments:**
-- `--task_dir`: Path to the task directory (e.g., `./tasks/spaceship-titanic`)
+- `--task`: Name of a bundled task (`gpqa`, `lawbench`, `longcot-chess`, `spaceship-titanic`). Mutually exclusive with `--task_dir`.
+- `--task_dir`: Path to an external task directory. Mutually exclusive with `--task`.
 - `--max_gen`: Number of generations to evolve (default: 3)
 - `--run_id`: Unique identifier for this run (default: 1)
 - `--backend`: Agent backend to use: `claude` (default) or `openhands`
@@ -211,7 +223,7 @@ diff runs/run_1/gen_1/target_agent.py runs/run_1/gen_2/target_agent.py
 Each task directory must follow this structure:
 
 ```
-tasks/{task-id}/
+{task-id}/
 ├── data/
 │   ├── public/
 │   │   ├── task.md                    # Task description (orchestrator reads this)
@@ -292,8 +304,8 @@ SIA supports two agent backends for maximum flexibility:
 Uses the Claude Agent SDK with Claude models only:
 
 ```bash
-python orchestration/orchestrator.py \
-  --task_dir ./tasks/gpqa \
+sia \
+  --task gpqa \
   --max_gen 5 \
   --run_id 1 \
   --backend claude \
@@ -309,8 +321,8 @@ python orchestration/orchestrator.py \
 Uses the OpenHands SDK with support for multiple LLM providers:
 
 ```bash
-python orchestration/orchestrator.py \
-  --task_dir ./tasks/gpqa \
+sia \
+  --task gpqa \
   --max_gen 5 \
   --run_id 2 \
   --backend openhands \
@@ -341,24 +353,24 @@ python orchestration/orchestrator.py \
 
 ```bash
 # Run 1: Claude via Claude Code (default)
-python orchestration/orchestrator.py \
-  --task_dir ./tasks/gpqa \
+sia \
+  --task gpqa \
   --max_gen 3 \
   --run_id 1 \
   --backend claude \
   --meta_model haiku
 
 # Run 2: Gemini via OpenHands
-python orchestration/orchestrator.py \
-  --task_dir ./tasks/gpqa \
+sia \
+  --task gpqa \
   --max_gen 3 \
   --run_id 2 \
   --backend openhands \
   --meta_model "gemini/gemini-3.1-pro-preview"
 
 # Run 3: GPT-4 via OpenHands
-python orchestration/orchestrator.py \
-  --task_dir ./tasks/gpqa \
+sia \
+  --task gpqa \
   --max_gen 3 \
   --run_id 3 \
   --backend openhands \
@@ -369,7 +381,8 @@ python orchestration/orchestrator.py \
 
 | Argument | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `--task_dir` | Yes | - | Path to task directory (e.g., `./tasks/gpqa`) |
+| `--task` | One of | - | Name of a bundled task (`gpqa`, `lawbench`, `longcot-chess`, `spaceship-titanic`) |
+| `--task_dir` | One of | - | Path to an external task directory (mutually exclusive with `--task`) |
 | `--max_gen` | No | 3 | Number of improvement generations |
 | `--run_id` | No | 1 | Unique run identifier |
 | `--backend` | No | `claude` | Agent backend: `claude` or `openhands` |
