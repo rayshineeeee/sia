@@ -4,8 +4,6 @@ import json
 import sys
 from pathlib import Path
 
-import pytest
-
 # Add orchestration/ to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "orchestration"))
 
@@ -37,7 +35,7 @@ def test_load_multi_trajectory(tmp_path):
 
 
 def test_load_missing_execution(tmp_path):
-    data, is_multi = load_agent_execution(str(tmp_path))
+    data, _is_multi = load_agent_execution(str(tmp_path))
     assert "error" in data
 
 

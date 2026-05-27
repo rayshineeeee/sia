@@ -1,14 +1,13 @@
 """Unit tests for the ContextManager."""
 
 import json
-import os
-import tempfile
+
+# Add orchestration/ to path so we can import
+import sys
 from pathlib import Path
 
 import pytest
 
-# Add orchestration/ to path so we can import
-import sys
 sys.path.insert(0, str(Path(__file__).parent.parent / "orchestration"))
 
 from context_manager import ContextManager

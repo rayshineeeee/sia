@@ -4,11 +4,7 @@ from datetime import datetime
 from typing import Literal
 
 # Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s [%(levelname)s] %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S'
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
 logger = logging.getLogger(__name__)
 
 # Backend type definition
@@ -20,7 +16,7 @@ async def run_agent_claude(model_name, max_turns, prompt, agent_working_director
 
     Note: Claude Code automatically saves trajectories to ~/.claude/projects/
     """
-    from claude_agent_sdk import query, ClaudeAgentOptions, ResultMessage
+    from claude_agent_sdk import ClaudeAgentOptions, ResultMessage, query
 
     logger.info("=" * 80)
     logger.info(f"Starting agent execution with {model_name} model")
@@ -44,7 +40,7 @@ async def run_agent_claude(model_name, max_turns, prompt, agent_working_director
         ):
             logged_content = False
 
-            if hasattr(message, 'content') and message.content:
+            if hasattr(message, "content") and message.content:
                 for block in message.content:
                     # Log agent text responses
                     if hasattr(block, "text") and block.text:
@@ -69,10 +65,11 @@ async def run_agent_claude(model_name, max_turns, prompt, agent_working_director
                         if hasattr(block, "input") and block.input:
                             # Pretty print tool input
                             import json
+
                             try:
                                 input_str = json.dumps(block.input, indent=2)
                                 logger.info(f"   Input: {input_str}")
-                            except:
+                            except (TypeError, ValueError):
                                 logger.info(f"   Input: {block.input}")
 
                     # Log tool results
@@ -88,7 +85,7 @@ async def run_agent_claude(model_name, max_turns, prompt, agent_working_director
             if isinstance(message, ResultMessage):
                 elapsed_time = (datetime.now() - start_time).total_seconds()
                 logger.info(f"\n{'=' * 80}")
-                logger.info(f"EXECUTION COMPLETE")
+                logger.info("EXECUTION COMPLETE")
                 logger.info(f"{'=' * 80}")
                 logger.info(f"Total turns: {turn_count}")
                 logger.info(f"Execution time: {elapsed_time:.2f} seconds")
@@ -97,7 +94,7 @@ async def run_agent_claude(model_name, max_turns, prompt, agent_working_director
 
     except Exception as e:
         logger.error(f"\n{'!' * 80}")
-        logger.error(f"ERROR: {str(e)}")
+        logger.error(f"ERROR: {e!s}")
         logger.error(f"{'!' * 80}", exc_info=True)
         raise
 
@@ -106,8 +103,8 @@ async def run_agent_openhands(model_name, max_turns, prompt, agent_working_direc
     """Run agent using OpenHands SDK"""
     try:
         from openhands.sdk import LLM, Agent, Conversation, Tool
-        from openhands.tools.terminal import TerminalTool
         from openhands.tools.file_editor import FileEditorTool
+        from openhands.tools.terminal import TerminalTool
     except ImportError:
         logger.error("OpenHands SDK not installed. Install with: pip install openhands-ai")
         raise
@@ -157,11 +154,7 @@ async def run_agent_openhands(model_name, max_turns, prompt, agent_working_direc
         # Trajectory will be saved in: agent_working_directory/openhands_trajectory/
         trajectory_dir = os.path.join(agent_working_directory, "openhands_trajectory")
 
-        conversation = Conversation(
-            agent=agent,
-            workspace=agent_working_directory,
-            persistence_dir=trajectory_dir
-        )
+        conversation = Conversation(agent=agent, workspace=agent_working_directory, persistence_dir=trajectory_dir)
 
         # Send the task prompt
         logger.info(f"\n{'─' * 80}")
@@ -177,7 +170,7 @@ async def run_agent_openhands(model_name, max_turns, prompt, agent_working_direc
         # Log completion
         elapsed_time = (datetime.now() - start_time).total_seconds()
         logger.info(f"\n{'=' * 80}")
-        logger.info(f"EXECUTION COMPLETE")
+        logger.info("EXECUTION COMPLETE")
         logger.info(f"{'=' * 80}")
         logger.info(f"Execution time: {elapsed_time:.2f} seconds")
         logger.info(f"Final result: {result}")
@@ -186,17 +179,13 @@ async def run_agent_openhands(model_name, max_turns, prompt, agent_working_direc
 
     except Exception as e:
         logger.error(f"\n{'!' * 80}")
-        logger.error(f"ERROR: {str(e)}")
+        logger.error(f"ERROR: {e!s}")
         logger.error(f"{'!' * 80}", exc_info=True)
         raise
 
 
 async def run_agent(
-    model_name: str,
-    max_turns: str,
-    prompt: str,
-    agent_working_directory: str,
-    backend: AgentBackend = "claude"
+    model_name: str, max_turns: str, prompt: str, agent_working_directory: str, backend: AgentBackend = "claude"
 ):
     """
     Run an agent with the specified backend.
