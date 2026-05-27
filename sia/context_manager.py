@@ -5,20 +5,20 @@ Manages the context.md file that tracks the evolution of agent generations,
 including code changes, performance metrics, and insights across iterations.
 """
 
-import os
-import json
-import re
 import asyncio
+import json
+import os
+import re
 import tempfile
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Any, Optional
+from typing import Any
 
 
 class ContextManager:
     """Manages context.md for tracking generation evolution in a run"""
 
-    def __init__(self, run_directory: str, run_config: Dict[str, Any]):
+    def __init__(self, run_directory: str, run_config: dict[str, Any]):
         """
         Initialize the context manager.
 
@@ -35,28 +35,28 @@ class ContextManager:
         self.context_path = os.path.join(run_directory, "context.md")
         self.config = run_config
         self.generations = []
-        self.meta_model = run_config.get('meta_model', 'haiku')
-        self.backend = run_config.get('backend', 'claude')
+        self.meta_model = run_config.get("meta_model", "haiku")
+        self.backend = run_config.get("backend", "claude")
 
     def initialize(self):
         """Create context.md with header information"""
         header = f"""# Run Context: {os.path.basename(self.run_dir)}
 
-**Task**: {self.config.get('task_dir', 'N/A')}
-**Meta Model**: {self.config.get('meta_model', 'N/A')}
-**Task Model**: {self.config.get('task_model', 'N/A')}
-**Backend**: {self.config.get('backend', 'N/A')}
-**Started**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
-**Max Generations**: {self.config.get('max_gen', 'N/A')}
+**Task**: {self.config.get("task_dir", "N/A")}
+**Meta Model**: {self.config.get("meta_model", "N/A")}
+**Task Model**: {self.config.get("task_model", "N/A")}
+**Backend**: {self.config.get("backend", "N/A")}
+**Started**: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+**Max Generations**: {self.config.get("max_gen", "N/A")}
 
 ---
 
 """
-        with open(self.context_path, 'w', encoding='utf-8') as f:
+        with open(self.context_path, "w", encoding="utf-8") as f:
             f.write(header)
         print(f"Initialized context.md at {self.context_path}")
 
-    def _generate_llm_summary(self, gen_num: int, gen_data: Dict[str, Any], metrics: Dict[str, Any]) -> Optional[str]:
+    def _generate_llm_summary(self, gen_num: int, gen_data: dict[str, Any], metrics: dict[str, Any]) -> str | None:
         """
         Call LLM to generate a summary of changes and improvements.
 
@@ -74,22 +74,26 @@ class ContextManager:
 
         try:
             # Read current generation's target_agent.py
-            current_agent_path = gen_data['agent_path']
-            current_agent_code = Path(current_agent_path).read_text(encoding='utf-8')
+            current_agent_path = gen_data["agent_path"]
+            current_agent_code = Path(current_agent_path).read_text(encoding="utf-8")
 
             # Read previous generation's target_agent.py
             prev_gen_dir = os.path.join(self.run_dir, f"gen_{gen_num - 1}")
             prev_agent_path = os.path.join(prev_gen_dir, "target_agent.py")
-            prev_agent_code = Path(prev_agent_path).read_text(encoding='utf-8') if os.path.exists(prev_agent_path) else "Not available"
+            prev_agent_code = (
+                Path(prev_agent_path).read_text(encoding="utf-8")
+                if os.path.exists(prev_agent_path)
+                else "Not available"
+            )
 
             # Read improvement.md from current generation
-            improvement_path = gen_data.get('improvement_path')
+            improvement_path = gen_data.get("improvement_path")
             improvement_content = ""
             if improvement_path and os.path.exists(improvement_path):
-                improvement_content = Path(improvement_path).read_text(encoding='utf-8')
+                improvement_content = Path(improvement_path).read_text(encoding="utf-8")
 
             # Get previous generation's metrics
-            prev_metrics = self.generations[-1]['metrics'] if self.generations else {}
+            prev_metrics = self.generations[-1]["metrics"] if self.generations else {}
 
             # Format metrics comparison
             metrics_comparison = self._format_metrics_comparison(prev_metrics, metrics)
@@ -126,11 +130,9 @@ class ContextManager:
             # Create a temporary directory for LLM execution
             with tempfile.TemporaryDirectory() as temp_dir:
                 # Import run_agent here to avoid circular imports
-                from util import run_agent
+                from sia.util import run_agent
 
                 # Run the LLM to generate summary
-                summary_result = []
-
                 async def get_summary():
                     # We'll capture the output by writing to a file
                     summary_file = os.path.join(temp_dir, "summary.txt")
@@ -143,12 +145,12 @@ class ContextManager:
                         max_turns="5",
                         prompt=file_prompt,
                         agent_working_directory=temp_dir,
-                        backend=self.backend
+                        backend=self.backend,
                     )
 
                     # Read the summary from file
                     if os.path.exists(summary_file):
-                        return Path(summary_file).read_text(encoding='utf-8').strip()
+                        return Path(summary_file).read_text(encoding="utf-8").strip()
                     return None
 
                 # Run async function
@@ -165,7 +167,7 @@ class ContextManager:
             print(f"Warning: Error generating LLM summary: {e}")
             return None
 
-    def _format_metrics_comparison(self, prev_metrics: Dict[str, Any], current_metrics: Dict[str, Any]) -> str:
+    def _format_metrics_comparison(self, prev_metrics: dict[str, Any], current_metrics: dict[str, Any]) -> str:
         """Format a comparison of metrics between generations"""
         if not prev_metrics and not current_metrics:
             return "No metrics available for comparison"
@@ -181,18 +183,18 @@ class ContextManager:
             delta_str = ""
             try:
                 if prev_val != "N/A" and curr_val != "N/A":
-                    prev_num = float(str(prev_val).rstrip('%'))
-                    curr_num = float(str(curr_val).rstrip('%'))
+                    prev_num = float(str(prev_val).rstrip("%"))
+                    curr_num = float(str(curr_val).rstrip("%"))
                     delta = curr_num - prev_num
                     delta_str = f" ({delta:+.2f})"
-            except:
+            except (ValueError, TypeError):
                 pass
 
             lines.append(f"- {key}: {prev_val} → {curr_val}{delta_str}")
 
         return "\n".join(lines) if lines else "No metrics to compare"
 
-    def add_generation(self, gen_num: int, gen_data: Dict[str, Any]):
+    def add_generation(self, gen_num: int, gen_data: dict[str, Any]):
         """
         Append a generation entry to context.md.
 
@@ -208,44 +210,44 @@ class ContextManager:
                 - execution_type: str, 'Single' or 'Multi-trajectory'
         """
         # Extract agent stats
-        agent_stats = self._get_agent_stats(gen_data['agent_path'])
+        agent_stats = self._get_agent_stats(gen_data["agent_path"])
 
         # Calculate deltas if previous generation exists
         deltas = {}
         if self.generations:
-            prev_stats = self.generations[-1]['agent_stats']
+            prev_stats = self.generations[-1]["agent_stats"]
             deltas = {
-                'size_pct': ((agent_stats['size'] - prev_stats['size']) / prev_stats['size'] * 100),
-                'lines_delta': agent_stats['lines'] - prev_stats['lines']
+                "size_pct": ((agent_stats["size"] - prev_stats["size"]) / prev_stats["size"] * 100),
+                "lines_delta": agent_stats["lines"] - prev_stats["lines"],
             }
 
         # Extract metrics
-        metrics = self._extract_metrics(gen_data['gen_dir'])
+        metrics = self._extract_metrics(gen_data["gen_dir"])
 
         # Extract insights from improvement.md (if exists)
         insights = []
-        if gen_data.get('improvement_path') and os.path.exists(gen_data['improvement_path']):
-            insights = self._extract_insights(gen_data['improvement_path'])
+        if gen_data.get("improvement_path") and os.path.exists(gen_data["improvement_path"]):
+            insights = self._extract_insights(gen_data["improvement_path"])
 
         # Generate LLM summary of changes and improvements
         llm_summary = self._generate_llm_summary(gen_num, gen_data, metrics)
 
         # Format entry
-        entry = self._format_generation_entry(
-            gen_num, gen_data, agent_stats, deltas, metrics, insights, llm_summary
-        )
+        entry = self._format_generation_entry(gen_num, gen_data, agent_stats, deltas, metrics, insights, llm_summary)
 
         # Append to file
-        with open(self.context_path, 'a', encoding='utf-8') as f:
+        with open(self.context_path, "a", encoding="utf-8") as f:
             f.write(entry + "\n---\n\n")
 
         # Store for delta calculations and summary
-        self.generations.append({
-            'gen_num': gen_num,
-            'agent_stats': agent_stats,
-            'metrics': metrics,
-            'success': gen_data.get('success', True)
-        })
+        self.generations.append(
+            {
+                "gen_num": gen_num,
+                "agent_stats": agent_stats,
+                "metrics": metrics,
+                "success": gen_data.get("success", True),
+            }
+        )
 
         print(f"Added Generation {gen_num} to context.md")
 
@@ -259,15 +261,15 @@ class ContextManager:
 
         # Find best generation by primary metric (accuracy)
         best_gen = None
-        best_metric = -float('inf')
+        best_metric = -float("inf")
         for g in self.generations:
-            accuracy = g['metrics'].get('accuracy')
+            accuracy = g["metrics"].get("accuracy")
             if accuracy is not None:
                 if isinstance(accuracy, str):
                     # Handle percentage strings like "48.99%"
                     try:
-                        accuracy = float(accuracy.rstrip('%'))
-                    except:
+                        accuracy = float(accuracy.rstrip("%"))
+                    except (ValueError, TypeError):
                         continue
                 if accuracy > best_metric:
                     best_metric = accuracy
@@ -275,15 +277,15 @@ class ContextManager:
 
         # Calculate evolution
         evolution_text = "N/A"
-        if first_gen['metrics'].get('accuracy') is not None and last_gen['metrics'].get('accuracy') is not None:
-            first_acc = first_gen['metrics']['accuracy']
-            last_acc = last_gen['metrics']['accuracy']
+        if first_gen["metrics"].get("accuracy") is not None and last_gen["metrics"].get("accuracy") is not None:
+            first_acc = first_gen["metrics"]["accuracy"]
+            last_acc = last_gen["metrics"]["accuracy"]
 
             # Handle percentage strings
             if isinstance(first_acc, str):
-                first_acc = float(first_acc.rstrip('%'))
+                first_acc = float(first_acc.rstrip("%"))
             if isinstance(last_acc, str):
-                last_acc = float(last_acc.rstrip('%'))
+                last_acc = float(last_acc.rstrip("%"))
 
             gain = last_acc - first_acc
             evolution_text = f"{first_acc:.2f}% → {last_acc:.2f}% ({gain:+.2f}%)"
@@ -292,50 +294,50 @@ class ContextManager:
         summary = f"""## Summary Statistics
 
 **Total Generations**: {len(self.generations)}
-**Successful Executions**: {sum(1 for g in self.generations if g.get('success', True))}
-**Best Performance**: Generation {best_gen['gen_num'] if best_gen else 'N/A'} ({best_metric:.2f}% accuracy)
+**Successful Executions**: {sum(1 for g in self.generations if g.get("success", True))}
+**Best Performance**: Generation {best_gen["gen_num"] if best_gen else "N/A"} ({best_metric:.2f}% accuracy)
 
 **Evolution**:
 - {evolution_text}
 
 **Code Growth**:
-- Initial: {first_gen['agent_stats']['lines']} lines ({first_gen['agent_stats']['size']:,} bytes)
-- Final: {last_gen['agent_stats']['lines']} lines ({last_gen['agent_stats']['size']:,} bytes)
-- Growth: {last_gen['agent_stats']['lines'] - first_gen['agent_stats']['lines']} lines ({last_gen['agent_stats']['size'] - first_gen['agent_stats']['size']:+,} bytes)
+- Initial: {first_gen["agent_stats"]["lines"]} lines ({first_gen["agent_stats"]["size"]:,} bytes)
+- Final: {last_gen["agent_stats"]["lines"]} lines ({last_gen["agent_stats"]["size"]:,} bytes)
+- Growth: {last_gen["agent_stats"]["lines"] - first_gen["agent_stats"]["lines"]} lines ({last_gen["agent_stats"]["size"] - first_gen["agent_stats"]["size"]:+,} bytes)
 """
 
-        with open(self.context_path, 'a', encoding='utf-8') as f:
+        with open(self.context_path, "a", encoding="utf-8") as f:
             f.write(summary)
 
-        print(f"Finalized context.md with summary statistics")
+        print("Finalized context.md with summary statistics")
 
-    def _get_agent_stats(self, agent_path: str) -> Dict[str, int]:
+    def _get_agent_stats(self, agent_path: str) -> dict[str, int]:
         """Get file statistics for target_agent.py"""
         try:
-            with open(agent_path, 'r', encoding='utf-8') as f:
+            with open(agent_path, encoding="utf-8") as f:
                 lines = len(f.readlines())
             size = os.path.getsize(agent_path)
-            return {'size': size, 'lines': lines}
+            return {"size": size, "lines": lines}
         except Exception as e:
             print(f"Warning: Could not get agent stats: {e}")
-            return {'size': 0, 'lines': 0}
+            return {"size": 0, "lines": 0}
 
-    def _extract_metrics(self, gen_dir: str) -> Dict[str, Any]:
+    def _extract_metrics(self, gen_dir: str) -> dict[str, Any]:
         """Extract performance metrics from various sources"""
         metrics = {}
 
         # Priority 1: results.json - load ALL fields generically
-        results_path = os.path.join(gen_dir, 'results.json')
+        results_path = os.path.join(gen_dir, "results.json")
         if os.path.exists(results_path):
             try:
-                with open(results_path, 'r', encoding='utf-8') as f:
+                with open(results_path, encoding="utf-8") as f:
                     data = json.load(f)
                     # Extract all top-level scalar values (skip nested dicts/lists for now)
                     for key, value in data.items():
                         if isinstance(value, (int, float, str, bool)):
                             metrics[key] = value
                         # For common nested structures, try to extract useful info
-                        elif key == 'per_class' and isinstance(value, dict):
+                        elif key == "per_class" and isinstance(value, dict):
                             # Skip per_class details, too verbose for context
                             continue
                         elif isinstance(value, dict):
@@ -348,10 +350,10 @@ class ContextManager:
                 print(f"Warning: Could not parse results.json: {e}")
 
         # Priority 2: detailed_results.json
-        detailed_results_path = os.path.join(gen_dir, 'detailed_results.json')
+        detailed_results_path = os.path.join(gen_dir, "detailed_results.json")
         if os.path.exists(detailed_results_path) and not metrics:
             try:
-                with open(detailed_results_path, 'r', encoding='utf-8') as f:
+                with open(detailed_results_path, encoding="utf-8") as f:
                     data = json.load(f)
                     # Extract all top-level scalar values
                     for key, value in data.items():
@@ -361,36 +363,36 @@ class ContextManager:
                 print(f"Warning: Could not parse detailed_results.json: {e}")
 
         # Priority 3: Parse stdout
-        stdout_path = os.path.join(gen_dir, 'target_agent_stdout.log')
+        stdout_path = os.path.join(gen_dir, "target_agent_stdout.log")
         if os.path.exists(stdout_path) and not metrics:
             metrics.update(self._parse_stdout_metrics(stdout_path))
 
         return metrics
 
-    def _parse_stdout_metrics(self, stdout_path: str) -> Dict[str, Any]:
+    def _parse_stdout_metrics(self, stdout_path: str) -> dict[str, Any]:
         """Parse metrics from stdout log using regex patterns"""
         metrics = {}
         try:
-            with open(stdout_path, 'r', encoding='utf-8') as f:
+            with open(stdout_path, encoding="utf-8") as f:
                 content = f.read()
 
                 # Look for common patterns
                 patterns = {
-                    'accuracy': [
-                        r'accuracy[:\s=]+(\d+\.?\d*)\s*%?',
-                        r'final\s+accuracy[:\s=]+(\d+\.?\d*)\s*%?',
-                        r'test\s+accuracy[:\s=]+(\d+\.?\d*)\s*%?',
+                    "accuracy": [
+                        r"accuracy[:\s=]+(\d+\.?\d*)\s*%?",
+                        r"final\s+accuracy[:\s=]+(\d+\.?\d*)\s*%?",
+                        r"test\s+accuracy[:\s=]+(\d+\.?\d*)\s*%?",
                     ],
-                    'validation': [
-                        r'validation[:\s=]+(\d+\.?\d*)',
-                        r'val[:\s=]+(\d+\.?\d*)',
+                    "validation": [
+                        r"validation[:\s=]+(\d+\.?\d*)",
+                        r"val[:\s=]+(\d+\.?\d*)",
                     ],
-                    'correct': [
-                        r'(\d+)\s*/\s*\d+\s+correct',
-                        r'correct[:\s=]+(\d+)',
+                    "correct": [
+                        r"(\d+)\s*/\s*\d+\s+correct",
+                        r"correct[:\s=]+(\d+)",
                     ],
-                    'total': [
-                        r'\d+\s*/\s*(\d+)\s+(?:questions|samples|total)',
+                    "total": [
+                        r"\d+\s*/\s*(\d+)\s+(?:questions|samples|total)",
                     ],
                 }
 
@@ -402,27 +404,27 @@ class ContextManager:
                                 value = float(match.group(1))
                                 metrics[metric_name] = value
                                 break
-                            except:
+                            except (ValueError, TypeError):
                                 continue
         except Exception as e:
             print(f"Warning: Could not parse stdout metrics: {e}")
 
         return metrics
 
-    def _extract_insights(self, improvement_path: str) -> List[str]:
+    def _extract_insights(self, improvement_path: str) -> list[str]:
         """Extract key points from improvement.md"""
         insights = []
         try:
-            with open(improvement_path, 'r', encoding='utf-8') as f:
+            with open(improvement_path, encoding="utf-8") as f:
                 content = f.read()
 
                 # Look for bullet points or numbered items in improvement.md
                 # Pattern 1: Lines starting with - or *
-                bullet_pattern = r'^[-*]\s+(.+)$'
+                bullet_pattern = r"^[-*]\s+(.+)$"
                 bullets = re.findall(bullet_pattern, content, re.MULTILINE)
 
                 # Pattern 2: Numbered items
-                numbered_pattern = r'^\d+\.\s+(.+)$'
+                numbered_pattern = r"^\d+\.\s+(.+)$"
                 numbered = re.findall(numbered_pattern, content, re.MULTILINE)
 
                 # Combine and take first 5 meaningful insights
@@ -432,7 +434,7 @@ class ContextManager:
                 meaningful_insights = [
                     insight.strip()
                     for insight in all_insights
-                    if len(insight.strip()) > 20 and not insight.strip().endswith(':')
+                    if len(insight.strip()) > 20 and not insight.strip().endswith(":")
                 ]
 
                 insights = meaningful_insights[:5]
@@ -444,40 +446,40 @@ class ContextManager:
     def _format_generation_entry(
         self,
         gen_num: int,
-        gen_data: Dict[str, Any],
-        stats: Dict[str, int],
-        deltas: Dict[str, float],
-        metrics: Dict[str, Any],
-        insights: List[str],
-        llm_summary: Optional[str] = None
+        gen_data: dict[str, Any],
+        stats: dict[str, int],
+        deltas: dict[str, float],
+        metrics: dict[str, Any],
+        insights: list[str],
+        llm_summary: str | None = None,
     ) -> str:
         """Format markdown entry for a generation"""
 
-        status = "✓ SUCCESS" if gen_data.get('success', True) else "✗ FAILED"
+        status = "✓ SUCCESS" if gen_data.get("success", True) else "✗ FAILED"
 
         entry = f"""## Generation {gen_num}
 
 **Status**: {status}
-**Timestamp**: {gen_data.get('timestamp', 'N/A')}
-**Duration**: {gen_data.get('duration', 0):.1f}s
+**Timestamp**: {gen_data.get("timestamp", "N/A")}
+**Duration**: {gen_data.get("duration", 0):.1f}s
 
 ### Target Agent Changes
 """
 
         if gen_num == 1:
             entry += f"""- Initial agent created by meta-agent
-- File size: {stats['size']:,} bytes
-- Lines of code: {stats['lines']}
+- File size: {stats["size"]:,} bytes
+- Lines of code: {stats["lines"]}
 """
         else:
-            delta_size = deltas.get('size_pct', 0)
+            delta_size = deltas.get("size_pct", 0)
             delta_size_str = f"+{delta_size:.1f}%" if delta_size > 0 else f"{delta_size:.1f}%"
-            delta_lines = deltas.get('lines_delta', 0)
+            delta_lines = deltas.get("lines_delta", 0)
             delta_lines_str = f"+{delta_lines}" if delta_lines > 0 else f"{delta_lines}"
 
             entry += f"""- Modified by feedback agent
-- File size: {stats['size']:,} bytes ({delta_size_str})
-- Lines: {stats['lines']} ({delta_lines_str} lines)
+- File size: {stats["size"]:,} bytes ({delta_size_str})
+- Lines: {stats["lines"]} ({delta_lines_str} lines)
 """
             if insights:
                 entry += "- Key changes from improvement.md:\n"
@@ -496,7 +498,7 @@ class ContextManager:
         entry += f"""
 ### Execution Summary
 - Execution status: {status}
-- Output format: {gen_data.get('execution_type', 'Unknown')}
+- Output format: {gen_data.get("execution_type", "Unknown")}
 
 ### Performance Metrics
 """
@@ -512,7 +514,7 @@ class ContextManager:
 
         # Show changes vs previous generation
         if gen_num > 1 and self.generations:
-            prev_metrics = self.generations[-1]['metrics']
+            prev_metrics = self.generations[-1]["metrics"]
             changes = []
 
             for key in metrics:
@@ -523,13 +525,13 @@ class ContextManager:
                     # Handle percentage strings
                     if isinstance(current, str):
                         try:
-                            current = float(current.rstrip('%'))
-                        except:
+                            current = float(current.rstrip("%"))
+                        except (ValueError, TypeError):
                             continue
                     if isinstance(previous, str):
                         try:
-                            previous = float(previous.rstrip('%'))
-                        except:
+                            previous = float(previous.rstrip("%"))
+                        except (ValueError, TypeError):
                             continue
 
                     # Calculate delta

@@ -17,9 +17,10 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
-import google.generativeai as genai
 
+import google.generativeai as genai
 from dotenv import load_dotenv
+
 _ = load_dotenv()
 
 
@@ -28,10 +29,7 @@ def run_mlebench_prepare(competition_id: str) -> bool:
     print(f"[1/6] Running mlebench prepare for competition: {competition_id}")
     try:
         result = subprocess.run(
-            ["mlebench", "prepare", "-c", competition_id],
-            capture_output=True,
-            text=True,
-            check=True
+            ["mlebench", "prepare", "-c", competition_id], capture_output=True, text=True, check=True
         )
         print(result.stdout)
         if result.stderr:
@@ -90,7 +88,7 @@ def copy_dataset_files(competition_id: str, tasks_dir: Path) -> bool:
 
 def move_description_to_task(competition_id: str, tasks_dir: Path) -> bool:
     """Rename description.md to task.md in data/public."""
-    print(f"[3/6] Renaming description.md to task.md")
+    print("[3/6] Renaming description.md to task.md")
 
     task_dir = tasks_dir / competition_id
     data_dir = task_dir / "data"
@@ -113,7 +111,7 @@ def move_description_to_task(competition_id: str, tasks_dir: Path) -> bool:
 
 def get_similar_tasks_from_gemini(competition_id: str, task_description: str) -> str:
     """Use Gemini to generate similar task descriptions."""
-    print(f"[4/6] Generating similar tasks using Gemini API")
+    print("[4/6] Generating similar tasks using Gemini API")
 
     # Get API key from environment
     api_key = os.environ.get("GEMINI_API_KEY")
@@ -125,7 +123,7 @@ def get_similar_tasks_from_gemini(competition_id: str, task_description: str) ->
 
     try:
         # Use Gemini 2.0 Flash Thinking (closest to "Gemini 3 Pro Preview")
-        model = genai.GenerativeModel('gemini-3-flash-preview')
+        model = genai.GenerativeModel("gemini-3-flash-preview")
 
         prompt = f"""Given the following Kaggle competition task:
 
@@ -166,7 +164,7 @@ EXAMPLE FORMAT:
 Generate tasks that will help train a generalizable AI agent capable of handling diverse machine learning problems."""
 
         response = model.generate_content(prompt)
-        print(f"  ✓ Generated similar tasks from Gemini")
+        print("  ✓ Generated similar tasks from Gemini")
         return response.text
 
     except Exception as e:
@@ -176,7 +174,7 @@ Generate tasks that will help train a generalizable AI agent capable of handling
 
 def create_sample_task_descriptions(competition_id: str, tasks_dir: Path, similar_tasks: str) -> bool:
     """Create SAMPLE_TASK_DESCRIPTIONS.md in reference directory."""
-    print(f"[5/6] Creating SAMPLE_TASK_DESCRIPTIONS.md")
+    print("[5/6] Creating SAMPLE_TASK_DESCRIPTIONS.md")
 
     task_dir = tasks_dir / competition_id
     reference_dir = task_dir / "reference"
@@ -195,7 +193,7 @@ def create_sample_task_descriptions(competition_id: str, tasks_dir: Path, simila
 
 def copy_reference_agent(competition_id: str, tasks_dir: Path) -> bool:
     """Copy reference_target_agent.py from _shared to competition reference directory."""
-    print(f"[6/6] Copying reference_target_agent.py")
+    print("[6/6] Copying reference_target_agent.py")
 
     shared_dir = tasks_dir / "_shared"
     reference_file = shared_dir / "reference_target_agent.py"
@@ -216,35 +214,22 @@ def copy_reference_agent(competition_id: str, tasks_dir: Path) -> bool:
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Prepare task dataset from MLE-Bench competition"
-    )
+    parser = argparse.ArgumentParser(description="Prepare task dataset from MLE-Bench competition")
+    parser.add_argument("-c", "--competition", required=True, help="Competition ID (e.g., 'spaceship-titanic')")
     parser.add_argument(
-        "-c", "--competition",
-        required=True,
-        help="Competition ID (e.g., 'spaceship-titanic')"
+        "--tasks-dir", type=Path, default=Path("./tasks"), help="Base tasks directory (default: ./tasks)"
     )
-    parser.add_argument(
-        "--tasks-dir",
-        type=Path,
-        default=Path("./tasks"),
-        help="Base tasks directory (default: ./tasks)"
-    )
-    parser.add_argument(
-        "--skip-gemini",
-        action="store_true",
-        help="Skip Gemini API call for similar tasks"
-    )
+    parser.add_argument("--skip-gemini", action="store_true", help="Skip Gemini API call for similar tasks")
 
     args = parser.parse_args()
 
     competition_id = args.competition
     tasks_dir = args.tasks_dir.resolve()
 
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"Preparing SIA Dataset for: {competition_id}")
     print(f"Tasks directory: {tasks_dir}")
-    print(f"{'='*60}\n")
+    print(f"{'=' * 60}\n")
 
     # Step 1: Run mlebench prepare
     if not run_mlebench_prepare(competition_id):
@@ -268,10 +253,7 @@ def main():
             task_description = task_md.read_text()
 
         if task_description:
-            similar_tasks = get_similar_tasks_from_gemini(
-                competition_id,
-                task_description
-            )
+            similar_tasks = get_similar_tasks_from_gemini(competition_id, task_description)
         else:
             print("  ⚠ No task description found for Gemini API call")
 
@@ -280,16 +262,16 @@ def main():
     # Step 6: Copy reference agent
     copy_reference_agent(competition_id, tasks_dir)
 
-    print(f"\n{'='*60}")
-    print(f"✅ Dataset preparation complete!")
-    print(f"{'='*60}")
+    print(f"\n{'=' * 60}")
+    print("✅ Dataset preparation complete!")
+    print(f"{'=' * 60}")
     print(f"\nTask directory: {tasks_dir / competition_id}")
-    print(f"  - data/public/                      : Public dataset")
-    print(f"      - task.md                       : Task description")
-    print(f"      - *.csv                         : Data files")
-    print(f"  - data/private/                     : Private dataset")
-    print(f"  - reference/SAMPLE_TASK_DESCRIPTIONS.md  : Similar tasks from Gemini")
-    print(f"  - reference/reference_target_agent.py    : Reference agent template")
+    print("  - data/public/                      : Public dataset")
+    print("      - task.md                       : Task description")
+    print("      - *.csv                         : Data files")
+    print("  - data/private/                     : Private dataset")
+    print("  - reference/SAMPLE_TASK_DESCRIPTIONS.md  : Similar tasks from Gemini")
+    print("  - reference/reference_target_agent.py    : Reference agent template")
     print()
 
     return 0
