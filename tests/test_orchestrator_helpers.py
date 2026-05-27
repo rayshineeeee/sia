@@ -1,13 +1,8 @@
 """Unit tests for orchestrator helper functions."""
 
 import json
-import sys
-from pathlib import Path
 
-# Add orchestration/ to path
-sys.path.insert(0, str(Path(__file__).parent.parent / "orchestration"))
-
-from orchestrator import load_agent_execution
+from sia.orchestrator import load_agent_execution
 
 
 def test_load_single_trajectory(tmp_path):

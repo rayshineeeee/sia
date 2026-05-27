@@ -2,15 +2,9 @@
 
 import json
 
-# Add orchestration/ to path so we can import
-import sys
-from pathlib import Path
-
 import pytest
 
-sys.path.insert(0, str(Path(__file__).parent.parent / "orchestration"))
-
-from context_manager import ContextManager
+from sia.context_manager import ContextManager
 
 
 @pytest.fixture

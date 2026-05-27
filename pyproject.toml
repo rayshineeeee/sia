@@ -36,6 +36,9 @@ dev = [
     "ruff>=0.11",
 ]
 
+[project.scripts]
+sia = "sia.orchestrator:main"
+
 [project.urls]
 Homepage = "https://github.com/hexo-ai/sia"
 Repository = "https://github.com/hexo-ai/sia"
@@ -64,7 +67,7 @@ ignore = [
 ]
 
 [tool.ruff.lint.isort]
-known-first-party = ["orchestration"]
+known-first-party = ["sia"]
 
 [tool.ty.environment]
 python-version = "3.11"

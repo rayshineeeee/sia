@@ -57,8 +57,8 @@ import venv
 from datetime import datetime
 from pathlib import Path
 
-from context_manager import ContextManager
-from util import run_agent
+from sia.context_manager import ContextManager
+from sia.util import run_agent
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s", datefmt="%Y-%m-%d %H:%M:%S")

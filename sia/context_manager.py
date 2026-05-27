@@ -130,7 +130,7 @@ class ContextManager:
             # Create a temporary directory for LLM execution
             with tempfile.TemporaryDirectory() as temp_dir:
                 # Import run_agent here to avoid circular imports
-                from util import run_agent
+                from sia.util import run_agent
 
                 # Run the LLM to generate summary
                 async def get_summary():
