@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 REPO_ROOT = Path(__file__).parent.parent
-TASKS_DIR = REPO_ROOT / "tasks"
+TASKS_DIR = REPO_ROOT / "sia" / "tasks"
 
 # Directories that aren't actual tasks
 SKIP_DIRS = {"_shared"}
