@@ -19,7 +19,8 @@ Common causes:
 
 - Dataset paths are wrong — make sure absolute paths are used in your task
 - Required Python packages are missing from the per-run venv
-- `ANTHROPIC_API_KEY` (or the provider key matching your `--meta_model`) is not set
+- The `api_key_env` for your profile's provider is not set (e.g. `ANTHROPIC_API_KEY` for the
+  default profiles, `NEBIUS_API_KEY` for `kimi-nebius`) — the orchestrator warns at startup
 
 ## `ImportError: No module named 'anthropic'`
 

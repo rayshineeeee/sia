@@ -89,11 +89,61 @@ Artifacts land in `runs/run_{run_id}/gen_{n}/`:
 | `--task_dir` | — | Path to an external task directory |
 | `--max_gen` | 3 | Number of self-improvement generations |
 | `--run_id` | 1 | Unique run identifier |
-| `--backend` | `claude` | `claude` (Claude Agent SDK) or `openhands` (multi-provider) |
-| `--meta_model` | `haiku` | Meta/feedback model (e.g. `haiku`, `sonnet`, `opus`, or `gemini/...`, `openai/...` with openhands) |
-| `--task_model` | `claude-haiku-4-5-20251001` | Target agent model |
+| `--meta-profile` | `default-meta` | Profile for the meta/feedback agent (name or path to a `.json`) |
+| `--target-profile` | `default-target` | Profile for the target agent (name or path to a `.json`) |
+
+The model, backend, and provider for each agent come from a **profile** (see below). For example,
+to evaluate Kimi-K2.6 on Nebius as the target model:
+
+```bash
+export NEBIUS_API_KEY="..."        # + ANTHROPIC_API_KEY for the default meta agent
+sia --task gpqa --target-profile kimi-nebius --max_gen 5 --run_id 2
+```
 
 Full backend, model, and API-key reference: [docs/configuration.md](docs/configuration.md). Hit a snag? [docs/troubleshooting.md](docs/troubleshooting.md).
+
+### Author your own profile
+
+A **provider** is an endpoint + credentials; a **profile** bundles `(backend, model, provider)` for
+one agent role. Both are JSON files — bundled defaults live in `sia/defaults/{providers,profiles}/`,
+and you can add your own under `./providers/` and `./profiles/` (or set `$SIA_PROVIDERS_DIR` /
+`$SIA_PROFILES_DIR`). No code change required.
+
+```bash
+mkdir -p providers profiles
+```
+
+```jsonc
+// providers/my-endpoint.json   — an OpenAI-compatible provider
+{
+  "provider_id": "my-endpoint",
+  "name": "My Endpoint",
+  "client_kind": "openai",                 // anthropic | openai | google
+  "base_url": "https://api.example.com/v1",
+  "api_key_env": "MY_ENDPOINT_API_KEY"
+}
+```
+
+```jsonc
+// profiles/my-target.json      — the target agent's model + provider
+{
+  "profile_id": "my-target",
+  "name": "My model on My Endpoint",
+  "backend": "codegen",                     // "codegen" = the generated target agent
+  "model": "vendor/my-model",
+  "provider_id": "my-endpoint"              // references the provider above
+}
+```
+
+```bash
+export MY_ENDPOINT_API_KEY="..."
+sia --task gpqa --target-profile my-target          # by name (resolves ./profiles/my-target.json)
+sia --task gpqa --target-profile ./profiles/my-target.json   # or by explicit path
+```
+
+To run the **meta/feedback** agent elsewhere, give a profile a real backend (`openhands` or
+`pydantic-ai`) and pass it with `--meta-profile`. The `claude` backend is Anthropic-only.
+See [docs/configuration.md](docs/configuration.md) for the full schema and more examples.
 
 ---
 
