@@ -15,9 +15,8 @@ def test_help_exits_zero():
     assert "--max_gen" in result.stdout
     assert "--task" in result.stdout
     assert "--task_dir" in result.stdout
-    assert "--meta_model" in result.stdout
-    assert "--task_model" in result.stdout
-    assert "--backend" in result.stdout
+    assert "--meta-profile" in result.stdout
+    assert "--target-profile" in result.stdout
     assert "--sandbox" in result.stdout
 
 
