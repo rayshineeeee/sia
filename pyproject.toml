@@ -39,6 +39,7 @@ mlebench = ["google-generativeai>=0.8"]
 dev = [
     "pytest>=7.0",
     "ruff>=0.11",
+    "httpx>=0.27",  # required by fastapi's TestClient (starlette.testclient)
 ]
 
 [project.scripts]
