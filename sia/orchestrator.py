@@ -63,7 +63,6 @@ from sia.results import FeedbackContext, TargetAgentResult
 from sia.run_setup import RunSetup, TaskFiles, load_task_files, setup_run_directory
 from sia.util import run_agent
 
-# Re-exported for the existing test/public-import contract (and used internally).
 __all__ = [
     "BUNDLED_TASKS",
     "RunSetup",
@@ -108,7 +107,7 @@ def load_agent_execution(gen_directory, config: Config | None = None):
     execution_folder = os.path.join(gen_directory, Names.AGENT_EXECUTION_DIR)
     execution_file = os.path.join(gen_directory, Names.AGENT_EXECUTION_JSON)
 
-    # Check for multi-trajectory folder first (new format)
+    # Multi-trajectory folder: one file per question
     if os.path.isdir(execution_folder):
         logger.info("  → Detected multi-trajectory format (folder)")
 
@@ -140,7 +139,7 @@ def load_agent_execution(gen_directory, config: Config | None = None):
 
         return {"trajectories": trajectories, "count": len(trajectories), "type": "multi-trajectory"}, True
 
-    # Fall back to single file (old format, backwards compatible)
+    # Single combined execution file
     elif os.path.exists(execution_file):
         logger.info("  → Detected single-file format")
 

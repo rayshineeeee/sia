@@ -16,7 +16,7 @@ class Config:
     DEFAULT_META_PROFILE: str = "default-meta"
     DEFAULT_TARGET_PROFILE: str = "default-target"
 
-    # Model defaults (legacy; retained as fallbacks for context metadata / env overrides)
+    # Model defaults (fallbacks for context metadata / env overrides)
     DEFAULT_CLAUDE_META_MODEL: str = "haiku"
     DEFAULT_OPENHANDS_META_MODEL: str = "gemini/gemini-3.1-pro-preview"
     DEFAULT_TASK_MODEL: str = "claude-haiku-4-5-20251001"

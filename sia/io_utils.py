@@ -17,7 +17,7 @@ from sia.logging_setup import get_logger
 
 logger = get_logger(__name__)
 
-# Default size cap, evaluated once at import (equivalent to the previous class-attr default).
+# Default size cap, evaluated once at import.
 _DEFAULT_MAX_BYTES = Config().MAX_CONTEXT_FILE_SIZE
 
 

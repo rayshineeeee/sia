@@ -14,7 +14,6 @@ from typing import Any
 
 from sia.config import Config
 
-# Used internally below and re-exported under their historical private names for tests.
 from sia.io_utils import safe_load_json as _safe_load_json
 from sia.io_utils import safe_read_file as _safe_read_file
 from sia.logging_setup import get_logger

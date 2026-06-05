@@ -49,7 +49,7 @@ async def run_agent_openhands(model_name, max_turns, prompt, agent_working_direc
 
     try:
         # Determine API key + base_url. An explicit provider takes precedence; otherwise
-        # fall back to inferring the key from the model name (original behavior).
+        # infer the key from the model name.
         base_url = provider.base_url if provider else None
         api_key = os.getenv(provider.api_key_env) if provider else resolve_api_key(model_name)
         if not api_key:

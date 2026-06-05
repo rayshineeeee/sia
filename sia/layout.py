@@ -103,8 +103,7 @@ class RunLayout:
     def for_run_id(cls, run_id: int, runs_root: str = Names.RUNS_ROOT) -> RunLayout:
         return cls(f"{runs_root}/run_{run_id}")
 
-    # Generation directories. orchestrator uses absolute paths; context_manager
-    # historically uses relative joins. Both are preserved (do not unify).
+    # Generation directories: gen_dir returns an absolute path, gen_dir_rel a relative one.
     def gen_dir(self, n: int) -> str:
         return os.path.abspath(f"{self.run_dir}/gen_{n}")
 
