@@ -688,9 +688,16 @@ def run_generation(
         logger.info(f"Generation {current_gen} is the final generation. Skipping feedback agent.")
 
 
+def _run_web(args) -> None:
+    """Dispatch for ``sia web``: serve the runs visualizer in the foreground."""
+    configure_logging(args.log_level)
+    from sia.web import serve
+
+    serve(host=args.host, port=args.port, runs_dir=args.runs_dir, open_browser=not args.no_browser)
+
+
 def main():
     configure_logging()
-    _print_welcome()
 
     # Load env-var overrides (lower priority than explicit CLI flags)
     env_config = Config.from_env()
@@ -698,8 +705,20 @@ def main():
     # Parse command-line arguments
     args = cli.parse_args(env_config)
 
+    if args.command == "web":
+        _run_web(args)
+        return
+
+    _print_welcome()
+
     # Apply CLI log level (overrides the import-time default / $SIA_LOG_LEVEL).
     configure_logging(args.log_level)
+
+    # Start the live dashboard in a background thread so the run is watchable.
+    if not args.no_web:
+        from sia.web import serve_in_background
+
+        serve_in_background(host=args.web_host, port=args.web_port, runs_dir=Names.RUNS_ROOT)
 
     max_gen = args.max_gen
     task_dir, shared_dir = resolve_task_dir(args.task, args.task_dir)
