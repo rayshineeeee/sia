@@ -119,10 +119,11 @@ def test_path_traversal_is_blocked(runs_root, evil):
 
 
 def test_api_endpoints(runs_root):
-    fastapi_testclient = pytest.importorskip("fastapi.testclient")
+    from fastapi.testclient import TestClient
+
     from sia.web import create_app
 
-    client = fastapi_testclient.TestClient(create_app(runs_root))
+    client = TestClient(create_app(runs_root))
 
     assert client.get("/api/runs").json()[0]["name"] == "run_7"
     assert client.get("/api/runs/run_7").json()["backend"] == "openhands"

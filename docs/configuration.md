@@ -168,10 +168,9 @@ Each run lands in its own `runs/run_{id}/` directory, so they can be compared si
 `sia web` serves a dashboard over the `runs/` directory: per-generation
 target-agent code (syntax-highlighted), meta/feedback prompts, improvement
 plans, evaluation scores (accuracy-across-generations chart + per-domain
-breakdown), execution trajectories, and logs. Install the extra first:
+breakdown), execution trajectories, and logs.
 
 ```bash
-pip install 'sia-agent[web]'
 sia web                                  # serve ./runs at http://127.0.0.1:8000
 sia web --runs-dir ./runs --port 8080    # custom directory / port
 ```

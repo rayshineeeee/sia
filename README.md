@@ -119,7 +119,6 @@ plans, evaluation scores (with an accuracy-across-generations chart and
 per-domain breakdown), execution trajectories, and logs.
 
 ```bash
-pip install 'sia-agent[web]'
 sia web                          # serve ./runs at http://127.0.0.1:8000
 sia web --runs-dir ./runs --port 8080
 ```

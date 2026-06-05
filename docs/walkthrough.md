@@ -78,7 +78,7 @@ cat runs/run_1/gen_2/improvement.md
 diff runs/run_1/gen_1/target_agent.py runs/run_1/gen_2/target_agent.py
 ```
 
-Or browse it all in the web dashboard (`pip install 'sia-agent[web]'`):
+Or browse it all in the web dashboard:
 
 ```bash
 sia web                  # → http://127.0.0.1:8000
