@@ -70,18 +70,25 @@ Full provider/model reference: [docs/configuration.md](docs/configuration.md#api
 
 ### Run
 
+The CLI has two sub-commands: **`sia run`** (the self-improvement loop) and
+**`sia web`** (the runs visualizer, see [Visualize runs](#visualize-runs)).
+
 ```bash
-sia --task gpqa --max_gen 5 --run_id 1
+sia run --task gpqa --max_gen 5 --run_id 1
 ```
 
-Swap `--task` for any of the four bundled tasks.
+Swap `--task` for any of the four bundled tasks. (`sia --task ...` without the
+`run` sub-command still works and is treated as `sia run ...`.)
 
 Artifacts land in `runs/run_{run_id}/gen_{n}/`:
 - `target_agent.py` — the agent for that generation
 - `agent_execution.json` — execution logs
 - `improvement.md` — diff rationale (gen 2+)
 
-### Common flags
+While a run is in progress a **live dashboard** auto-starts at
+`http://127.0.0.1:8000` (requires the `web` extra; disable with `--no-web`).
+
+### Common flags (`sia run`)
 
 | Flag | Default | Description |
 |---|---|---|
@@ -91,16 +98,41 @@ Artifacts land in `runs/run_{run_id}/gen_{n}/`:
 | `--run_id` | 1 | Unique run identifier |
 | `--meta-profile` | `default-meta` | Profile for the meta/feedback agent (name or path to a `.json`) |
 | `--target-profile` | `default-target` | Profile for the target agent (name or path to a `.json`) |
+| `--no-web` | off | Don't auto-start the live dashboard during the run |
+| `--web-port` | 8000 | Port for the live dashboard (`--web-host` to change the bind host) |
 
 The model, backend, and provider for each agent come from a **profile** (see below). For example,
 to evaluate Kimi-K2.6 on Nebius as the target model:
 
 ```bash
 export NEBIUS_API_KEY="..."        # + ANTHROPIC_API_KEY for the default meta agent
-sia --task gpqa --target-profile kimi-nebius --max_gen 5 --run_id 2
+sia run --task gpqa --target-profile kimi-nebius --max_gen 5 --run_id 2
 ```
 
 Full backend, model, and API-key reference: [docs/configuration.md](docs/configuration.md). Hit a snag? [docs/troubleshooting.md](docs/troubleshooting.md).
+
+### Visualize runs
+
+A built-in web dashboard renders everything under `runs/`: the per-generation
+target-agent code (syntax-highlighted), meta/feedback prompts, improvement
+plans, evaluation scores (with an accuracy-across-generations chart and
+per-domain breakdown), execution trajectories, and logs.
+
+```bash
+pip install 'sia-agent[web]'
+sia web                          # serve ./runs at http://127.0.0.1:8000
+sia web --runs-dir ./runs --port 8080
+```
+
+It also starts automatically alongside `sia run` (disable with `--no-web`), so
+you can watch generations land live.
+
+| Flag | Default | Description |
+|---|---|---|
+| `--runs-dir` | `./runs` | Directory of runs to visualize |
+| `--host` | `127.0.0.1` | Bind host |
+| `--port` | 8000 | Bind port |
+| `--no-browser` | off | Don't open a browser window automatically |
 
 ### Author your own profile
 
@@ -137,8 +169,8 @@ mkdir -p providers profiles
 
 ```bash
 export MY_ENDPOINT_API_KEY="..."
-sia --task gpqa --target-profile my-target          # by name (resolves ./profiles/my-target.json)
-sia --task gpqa --target-profile ./profiles/my-target.json   # or by explicit path
+sia run --task gpqa --target-profile my-target      # by name (resolves ./profiles/my-target.json)
+sia run --task gpqa --target-profile ./profiles/my-target.json   # or by explicit path
 ```
 
 To run the **meta/feedback** agent elsewhere, give a profile a real backend (`openhands` or
@@ -164,17 +196,43 @@ my-task/
 ```
 
 ```bash
-sia --task_dir ./my-task --max_gen 5 --run_id 1
+sia run --task_dir ./my-task --max_gen 5 --run_id 1
 ```
 
 **Or bring an MLE-Bench competition.** SIA can bootstrap a task directory directly from any [MLE-Bench](https://github.com/openai/mle-bench) competition — it pulls the dataset via the Kaggle API, sets up the public/private split, and drops in the reference agent template:
 
 ```bash
 python -m sia.prepare_mlebench_dataset -c "spaceship-titanic"
-sia --task_dir ./tasks/spaceship-titanic --max_gen 5 --run_id 1
+sia run --task_dir ./tasks/spaceship-titanic --max_gen 5 --run_id 1
 ```
 
 Full step-by-step for both paths: [docs/walkthrough.md](docs/walkthrough.md).
+
+---
+
+## Evaluation
+
+After every generation the orchestrator scores the target agent automatically and
+feeds the result into the next generation's feedback prompt — this is the signal
+the self-improvement loop optimizes against.
+
+1. The target agent writes its output into the generation directory (e.g. `gen_1/submission.csv`).
+2. The orchestrator runs the task's evaluator: `python evaluate.py --gen-dir gen_1/`.
+3. `evaluate.py` scores the output against the held-out ground truth in `data/private/`
+   and writes `gen_1/results.json` (or `evaluation_results.json`).
+4. Those metrics are injected into the feedback prompt and surfaced in `context.md`
+   and the [web dashboard](#visualize-runs) (accuracy-across-generations chart, per-domain breakdown).
+
+The four bundled tasks already ship an evaluator. For a **custom task**, drop an
+`evaluate.py` exposing an `evaluate()` function into `data/public/` — it decides the
+submission format, compares against `data/private/`, and returns a metrics dict.
+Test it standalone before a full run:
+
+```bash
+python my-task/data/public/evaluate.py --gen-dir runs/run_1/gen_1   # should write results.json
+```
+
+Full contract, return-format rules, and a complete example: [EVALUATION_GUIDE.md](EVALUATION_GUIDE.md).
 
 ---
 
@@ -183,6 +241,7 @@ Full step-by-step for both paths: [docs/walkthrough.md](docs/walkthrough.md).
 - [docs/architecture.md](docs/architecture.md) — directory layout, generation flow, prompt customization
 - [docs/walkthrough.md](docs/walkthrough.md) — detailed custom-task walkthrough
 - [docs/configuration.md](docs/configuration.md) — backends, models, API keys, CLI reference
+- [EVALUATION_GUIDE.md](EVALUATION_GUIDE.md) — writing `evaluate.py` for a custom task
 - [docs/troubleshooting.md](docs/troubleshooting.md) — common errors and fixes
 
 ## Citation

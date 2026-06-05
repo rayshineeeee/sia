@@ -697,6 +697,7 @@ def _run_web(args) -> None:
 
 def main():
     configure_logging()
+    _print_welcome()
 
     # Load env-var overrides (lower priority than explicit CLI flags)
     env_config = Config.from_env()
@@ -707,8 +708,6 @@ def main():
     if args.command == "web":
         _run_web(args)
         return
-
-    _print_welcome()
 
     # Apply CLI log level (overrides the import-time default / $SIA_LOG_LEVEL).
     configure_logging(args.log_level)

@@ -4,6 +4,12 @@ Full reference for SIA's agent **profiles**, **providers**, and command-line arg
 
 ## Command-line arguments
 
+SIA has two sub-commands: **`sia run`** (the self-improvement loop) and **`sia web`**
+(the runs visualizer, see [Visualizing runs](#visualizing-runs)). For backward
+compatibility, `sia <flags>` with no sub-command is treated as `sia run <flags>`.
+
+### `sia run`
+
 | Argument | Required | Default | Description |
 |----------|----------|---------|-------------|
 | `--task` | one of | — | Name of a bundled task: `gpqa`, `lawbench`, `longcot-chess`, `spaceship-titanic` |
@@ -13,6 +19,18 @@ Full reference for SIA's agent **profiles**, **providers**, and command-line arg
 | `--meta-profile` | no | `default-meta` | Profile for the meta/feedback agent (name or path to a `.json`) |
 | `--target-profile` | no | `default-target` | Profile for the target agent (name or path to a `.json`) |
 | `--sandbox` | no | `none` | Target-agent isolation: `none` or `docker` |
+| `--no-web` | no | off | Don't auto-start the live dashboard during the run |
+| `--web-host` | no | `127.0.0.1` | Bind host for the live dashboard |
+| `--web-port` | no | `8000` | Bind port for the live dashboard |
+
+### `sia web`
+
+| Argument | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `--runs-dir` | no | `./runs` | Directory of runs to visualize |
+| `--host` | no | `127.0.0.1` | Bind host |
+| `--port` | no | `8000` | Bind port |
+| `--no-browser` | no | off | Don't open a browser window automatically |
 
 There are two agent roles, each selected by a profile:
 
@@ -76,8 +94,8 @@ Otherwise a bare **name** resolves in order:
 Add your own by dropping a JSON file in `./providers/` or `./profiles/` (no code change):
 
 ```bash
-sia --task gpqa --target-profile kimi-nebius          # bundled name
-sia --task gpqa --target-profile ./profiles/mine.json # explicit path
+sia run --task gpqa --target-profile kimi-nebius          # bundled name
+sia run --task gpqa --target-profile ./profiles/mine.json # explicit path
 ```
 
 ## Running
@@ -85,7 +103,7 @@ sia --task gpqa --target-profile ./profiles/mine.json # explicit path
 ### Default (Claude target, Claude meta)
 
 ```bash
-sia --task gpqa --max_gen 5 --run_id 1
+sia run --task gpqa --max_gen 5 --run_id 1
 ```
 
 Claude model shortcuts (used by the `claude` backend and `claude-*` target models):
@@ -97,7 +115,7 @@ Claude model shortcuts (used by the `claude` backend and `claude-*` target model
 ```bash
 export NEBIUS_API_KEY="..."        # target provider
 export ANTHROPIC_API_KEY="..."     # default-meta agent
-sia --task gpqa --target-profile kimi-nebius --max_gen 5 --run_id 2
+sia run --task gpqa --target-profile kimi-nebius --max_gen 5 --run_id 2
 ```
 
 The meta-agent refactors the task's reference agent to call the `openai` SDK at the Nebius
@@ -116,7 +134,7 @@ provider is rejected at load time). To run the meta agent elsewhere, author a pr
 ```
 
 ```bash
-sia --task gpqa --meta-profile gemini-meta
+sia run --task gpqa --meta-profile gemini-meta
 ```
 
 Backend model-spec conventions: OpenHands uses fully-qualified `provider/model`
@@ -139,11 +157,29 @@ export NEBIUS_API_KEY="..."      # nebius provider
 ## Comparing multiple LLMs on the same task
 
 ```bash
-sia --task gpqa --max_gen 3 --run_id 1 --target-profile default-target   # Claude
-sia --task gpqa --max_gen 3 --run_id 2 --target-profile kimi-nebius      # Kimi on Nebius
+sia run --task gpqa --max_gen 3 --run_id 1 --target-profile default-target   # Claude
+sia run --task gpqa --max_gen 3 --run_id 2 --target-profile kimi-nebius      # Kimi on Nebius
 ```
 
 Each run lands in its own `runs/run_{id}/` directory, so they can be compared side by side.
+
+## Visualizing runs
+
+`sia web` serves a dashboard over the `runs/` directory: per-generation
+target-agent code (syntax-highlighted), meta/feedback prompts, improvement
+plans, evaluation scores (accuracy-across-generations chart + per-domain
+breakdown), execution trajectories, and logs. Install the extra first:
+
+```bash
+pip install 'sia-agent[web]'
+sia web                                  # serve ./runs at http://127.0.0.1:8000
+sia web --runs-dir ./runs --port 8080    # custom directory / port
+```
+
+The same dashboard auto-starts in a background thread during `sia run` so you can
+watch generations land live; pass `--no-web` to disable it, or `--web-port` /
+`--web-host` to change where it binds. If the `web` extra isn't installed, the
+run logs a warning and continues without the dashboard.
 
 ## Environment-variable defaults
 

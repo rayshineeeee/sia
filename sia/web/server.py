@@ -25,8 +25,7 @@ def create_app(runs_dir: str | Path):
         from fastapi.responses import FileResponse, PlainTextResponse
     except ModuleNotFoundError as exc:  # pragma: no cover - import guard
         raise RuntimeError(
-            "The web visualizer needs FastAPI + uvicorn. Install with:\n"
-            "    pip install 'sia-agent[web]'"
+            "The web visualizer needs FastAPI + uvicorn. Install with:\n    pip install 'sia-agent[web]'"
         ) from exc
 
     runs_root = Path(runs_dir).resolve()

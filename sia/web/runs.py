@@ -405,9 +405,7 @@ def list_openhands_sessions(runs_root: Path, run_name: str, gen_name: str) -> li
     return sorted(child.name for child in root.iterdir() if child.is_dir())
 
 
-def get_openhands_events(
-    runs_root: Path, run_name: str, gen_name: str, session: str
-) -> list[dict[str, Any]] | None:
+def get_openhands_events(runs_root: Path, run_name: str, gen_name: str, session: str) -> list[dict[str, Any]] | None:
     gen_dir = _resolve_gen(runs_root, run_name, gen_name)
     if gen_dir is None:
         return None
