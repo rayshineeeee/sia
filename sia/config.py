@@ -12,7 +12,11 @@ from typing import ClassVar
 class Config:
     """Single source of truth for all SIA configuration defaults."""
 
-    # Model defaults
+    # Agent profile defaults (JSON profiles selected on the CLI, see sia/defaults/profiles/)
+    DEFAULT_META_PROFILE: str = "default-meta"
+    DEFAULT_TARGET_PROFILE: str = "default-target"
+
+    # Model defaults (legacy; retained as fallbacks for context metadata / env overrides)
     DEFAULT_CLAUDE_META_MODEL: str = "haiku"
     DEFAULT_OPENHANDS_META_MODEL: str = "gemini/gemini-3.1-pro-preview"
     DEFAULT_TASK_MODEL: str = "claude-haiku-4-5-20251001"
@@ -65,6 +69,8 @@ class Config:
         """Create Config with overrides from SIA_* environment variables."""
         cfg = cls()
         env_map = {
+            "SIA_META_PROFILE": ("DEFAULT_META_PROFILE", str),
+            "SIA_TARGET_PROFILE": ("DEFAULT_TARGET_PROFILE", str),
             "SIA_META_MODEL": ("DEFAULT_CLAUDE_META_MODEL", str),
             "SIA_TASK_MODEL": ("DEFAULT_TASK_MODEL", str),
             "SIA_MAX_GENERATIONS": ("DEFAULT_MAX_GENERATIONS", int),
