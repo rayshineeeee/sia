@@ -1,6 +1,6 @@
 # Configuration
 
-Full reference for SIA's backends, models, and command-line arguments.
+Full reference for SIA's agent **profiles**, **providers**, and command-line arguments.
 
 ## Command-line arguments
 
@@ -10,105 +10,148 @@ Full reference for SIA's backends, models, and command-line arguments.
 | `--task_dir` | one of | — | Path to an external task directory (mutually exclusive with `--task`) |
 | `--max_gen` | no | `3` | Number of self-improvement generations |
 | `--run_id` | no | `1` | Unique run identifier |
-| `--backend` | no | `claude` | Agent backend: `claude` or `openhands` |
-| `--meta_model` | no | `haiku` | Model for the meta and feedback agents |
-| `--task_model` | no | `claude-haiku-4-5-20251001` | Model for the target agent |
+| `--meta-profile` | no | `default-meta` | Profile for the meta/feedback agent (name or path to a `.json`) |
+| `--target-profile` | no | `default-target` | Profile for the target agent (name or path to a `.json`) |
+| `--sandbox` | no | `none` | Target-agent isolation: `none` or `docker` |
 
-## Backends
+There are two agent roles, each selected by a profile:
 
-### Claude Code (default)
+- the **meta/feedback agent** runs *inside* SIA via a backend (`claude` / `openhands` /
+  `pydantic-ai`) — selected with `--meta-profile`;
+- the **target agent** is *generated code* SIA never runs directly — its model/provider come
+  from `--target-profile`, and the meta-agent refactors the task's reference agent to that
+  provider's SDK.
 
-Uses the Claude Agent SDK with Claude models only.
+## Profiles and providers
 
-```bash
-sia \
-  --task gpqa \
-  --max_gen 5 \
-  --run_id 1 \
-  --backend claude \
-  --meta_model haiku
+Configuration is **declarative JSON** you can extend without touching code.
+
+### Provider — an endpoint + credentials
+
+```jsonc
+// sia/defaults/providers/nebius.json
+{
+  "provider_id": "nebius",                                   // stable id (also the filename stem)
+  "name": "Nebius Token Factory",                            // human-readable display name
+  "client_kind": "openai",                                   // anthropic | openai | google
+  "base_url": "https://api.tokenfactory.us-central1.nebius.com/v1/",
+  "api_key_env": "NEBIUS_API_KEY"
+}
 ```
 
-Supported model shortcuts:
+Bundled providers: `anthropic`, `gemini`, `openai`, `together`, `nebius`.
 
-- `haiku` → `claude-haiku-4-5-20251001`
-- `sonnet` → `claude-sonnet-4-5-20250929`
-- `opus` → `claude-opus-4-5-20251101`
+### AgentProfile — `(backend, model, provider)` for one role
 
-### OpenHands
-
-Uses the OpenHands SDK with support for multiple LLM providers. Use fully-qualified model names.
-
-```bash
-sia \
-  --task gpqa \
-  --max_gen 5 \
-  --run_id 2 \
-  --backend openhands \
-  --meta_model "gemini/gemini-3.1-pro-preview"
+```jsonc
+// sia/defaults/profiles/kimi-nebius.json
+{
+  "profile_id": "kimi-nebius",     // stable id (also the value you pass to --target-profile)
+  "name": "Kimi K2.6 on Nebius",   // human-readable display name
+  "backend": "codegen",            // a backend name, or "codegen" for the target agent
+  "model": "moonshotai/Kimi-K2.6",
+  "provider_id": "nebius"          // references a provider by its provider_id
+}
 ```
 
-**Google Gemini:**
+Each file carries both a stable `*_id` (used for references and on the CLI — keep it equal to the
+filename stem so name lookups resolve) and a friendly `name` for display.
+
+Bundled profiles:
+
+| Profile | backend | model | provider |
+|---------|---------|-------|----------|
+| `default-meta` | `claude` | `haiku` | `anthropic` |
+| `default-target` | `codegen` | `claude-haiku-4-5-20251001` | `anthropic` |
+| `kimi-nebius` | `codegen` | `moonshotai/Kimi-K2.6` | `nebius` |
+
+### Resolution — name or path
+
+A profile/provider value that contains `/` or ends in `.json` is loaded as a **file path**.
+Otherwise a bare **name** resolves in order:
+
+1. the user directory — `$SIA_PROFILES_DIR` / `$SIA_PROVIDERS_DIR`, else `./profiles` / `./providers`;
+2. the bundled defaults shipped in the package.
+
+Add your own by dropping a JSON file in `./providers/` or `./profiles/` (no code change):
 
 ```bash
---meta_model "gemini/gemini-3.0-pro"
---meta_model "gemini/gemini-3.1-pro-preview"
+sia --task gpqa --target-profile kimi-nebius          # bundled name
+sia --task gpqa --target-profile ./profiles/mine.json # explicit path
 ```
 
-**OpenAI GPT:**
+## Running
+
+### Default (Claude target, Claude meta)
 
 ```bash
---meta_model "openai/gpt-4"
---meta_model "openai/gpt-4-turbo"
+sia --task gpqa --max_gen 5 --run_id 1
 ```
 
-**Anthropic Claude via OpenHands:**
+Claude model shortcuts (used by the `claude` backend and `claude-*` target models):
+`haiku` → `claude-haiku-4-5-20251001`, `sonnet` → `claude-sonnet-4-5-20250929`,
+`opus` → `claude-opus-4-5-20251101`.
+
+### Kimi-K2.6 on Nebius as the target model
 
 ```bash
---meta_model "anthropic/claude-sonnet-4-5-20250929"
---meta_model "anthropic/claude-opus-4-5-20251101"
+export NEBIUS_API_KEY="..."        # target provider
+export ANTHROPIC_API_KEY="..."     # default-meta agent
+sia --task gpqa --target-profile kimi-nebius --max_gen 5 --run_id 2
 ```
+
+The meta-agent refactors the task's reference agent to call the `openai` SDK at the Nebius
+`base_url` with `NEBIUS_API_KEY` (dollar-cost is reported as 0 — per-provider pricing is unknown).
+
+### Pointing the meta/feedback agent at another provider
+
+The `claude` backend is Anthropic-only (a profile pairing `backend: claude` with a non-anthropic
+provider is rejected at load time). To run the meta agent elsewhere, author a profile with the
+`openhands` or `pydantic-ai` backend:
+
+```jsonc
+// ./profiles/gemini-meta.json
+{ "profile_id": "gemini-meta", "name": "Gemini meta agent", "backend": "openhands",
+  "model": "gemini/gemini-3.1-pro-preview", "provider_id": "gemini" }
+```
+
+```bash
+sia --task gpqa --meta-profile gemini-meta
+```
+
+Backend model-spec conventions: OpenHands uses fully-qualified `provider/model`
+(`gemini/gemini-3.1-pro-preview`, `openai/gpt-4`); PydanticAI uses native specs
+(`openai:gpt-4o`, `anthropic:claude-sonnet-4-5-20250929`, `google-gla:gemini-3.1-pro-preview`).
+Install the PydanticAI extra with `pip install 'sia-agent[pydantic-ai]'`.
 
 ## API keys
 
-Set the keys for the providers you plan to use:
+Set the `api_key_env` for each provider you use (the orchestrator warns at startup if one is unset):
 
 ```bash
-# Claude (claude backend, or anthropic/* via openhands)
-export ANTHROPIC_API_KEY="..."
-
-# Gemini (openhands backend)
-export GOOGLE_API_KEY="..."
-# or
-export GEMINI_API_KEY="..."
-
-# OpenAI (openhands backend)
-export OPENAI_API_KEY="..."
-
-# Generic fallback (openhands backend, if a specific key isn't set)
-export LLM_API_KEY="..."
+export ANTHROPIC_API_KEY="..."   # anthropic provider (claude backend / claude target models)
+export GEMINI_API_KEY="..."      # gemini provider  (or GOOGLE_API_KEY via openhands)
+export OPENAI_API_KEY="..."      # openai provider
+export TOGETHER_API_KEY="..."    # together provider
+export NEBIUS_API_KEY="..."      # nebius provider
 ```
 
 ## Comparing multiple LLMs on the same task
 
 ```bash
-# Run 1: Claude via Claude Code (default)
-sia --task gpqa --max_gen 3 --run_id 1 \
-    --backend claude --meta_model haiku
-
-# Run 2: Gemini via OpenHands
-sia --task gpqa --max_gen 3 --run_id 2 \
-    --backend openhands --meta_model "gemini/gemini-3.1-pro-preview"
-
-# Run 3: GPT-4 via OpenHands
-sia --task gpqa --max_gen 3 --run_id 3 \
-    --backend openhands --meta_model "openai/gpt-4"
+sia --task gpqa --max_gen 3 --run_id 1 --target-profile default-target   # Claude
+sia --task gpqa --max_gen 3 --run_id 2 --target-profile kimi-nebius      # Kimi on Nebius
 ```
 
 Each run lands in its own `runs/run_{id}/` directory, so they can be compared side by side.
 
+## Environment-variable defaults
+
+`SIA_META_PROFILE` / `SIA_TARGET_PROFILE` set the default profile names (overridden by the CLI
+flags). `SIA_MAX_GENERATIONS`, `SIA_MAX_TURNS`, and `SIA_SANDBOX_MODE` are also honored.
+
 ## Notes
 
-- The `claude` backend only accepts the Claude shortcut names (`haiku`, `sonnet`, `opus`). For any other provider, use `--backend openhands`.
-- Always use fully-qualified `provider/model` names with the OpenHands backend.
-- Make sure the API key matching your chosen model is in the environment before launching.
+- The `claude` backend only accepts the Claude shortcut names (`haiku`, `sonnet`, `opus`) and an
+  `anthropic` provider. For any other provider, use an `openhands` or `pydantic-ai` profile.
+- Make sure the API key matching each chosen provider is in the environment before launching.

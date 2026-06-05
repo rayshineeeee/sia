@@ -12,6 +12,9 @@ from sia.orchestrator import (
     _run_target_agent,
     run_generation,
 )
+from sia.profiles import load_profile
+
+DEFAULT_META_PROFILE = load_profile("default-meta")
 
 
 def _make_task_files(tmp_path):
@@ -140,8 +143,7 @@ def test_single_generation_creates_context(mock_run_ta, mock_run_fb, tmp_path):
         task_files=task_files,
         abs_dataset_dir=str(task_dir / "data" / "public"),
         dataset_dir=str(task_dir / "data" / "public"),
-        meta_model="haiku",
-        backend="claude",
+        meta_profile=DEFAULT_META_PROFILE,
         sandbox="none",
         env_config=Config(),
     )
@@ -171,8 +173,7 @@ def test_run_generation_directory_structure(mock_run_ta, mock_run_fb, tmp_path):
         task_files=TaskFiles("d", "r", {}, "# T"),
         abs_dataset_dir="/data",
         dataset_dir="/data",
-        meta_model="haiku",
-        backend="claude",
+        meta_profile=DEFAULT_META_PROFILE,
         sandbox="none",
         env_config=Config(),
     )
@@ -211,8 +212,7 @@ def test_two_generations_with_feedback(mock_run_ta, mock_run_fb, mock_llm, tmp_p
         task_files=task_files,
         abs_dataset_dir="/data",
         dataset_dir="/data",
-        meta_model="haiku",
-        backend="claude",
+        meta_profile=DEFAULT_META_PROFILE,
         sandbox="none",
         env_config=Config(),
     )
@@ -226,8 +226,7 @@ def test_two_generations_with_feedback(mock_run_ta, mock_run_fb, mock_llm, tmp_p
         task_files=task_files,
         abs_dataset_dir="/data",
         dataset_dir="/data",
-        meta_model="haiku",
-        backend="claude",
+        meta_profile=DEFAULT_META_PROFILE,
         sandbox="none",
         env_config=Config(),
     )

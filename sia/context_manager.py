@@ -6,51 +6,26 @@ including code changes, performance metrics, and insights across iterations.
 """
 
 import asyncio
-import json
-import logging
 import os
 import re
 import tempfile
 from datetime import datetime
-from pathlib import Path
 from typing import Any
 
 from sia.config import Config
 
-logger = logging.getLogger(__name__)
+# Used internally below and re-exported under their historical private names for tests.
+from sia.io_utils import safe_load_json as _safe_load_json
+from sia.io_utils import safe_read_file as _safe_read_file
+from sia.logging_setup import get_logger
 
-
-def _safe_read_file(path: str | Path, max_bytes: int = Config.MAX_CONTEXT_FILE_SIZE) -> str | None:
-    """Read a file with size limit. Returns None if file exceeds max_bytes."""
-    try:
-        file_size = os.path.getsize(path)
-        if file_size > max_bytes:
-            logger.warning(f"File too large ({file_size:,} bytes > {max_bytes:,}): {path}")
-            return None
-        return Path(path).read_text(encoding="utf-8")
-    except OSError as e:
-        logger.warning(f"Could not read file: {path}: {e}")
-        return None
-
-
-def _safe_load_json(path: str, max_bytes: int = Config.MAX_CONTEXT_FILE_SIZE) -> dict | list | None:
-    """Load JSON with size limit. Returns None if file exceeds max_bytes."""
-    try:
-        file_size = os.path.getsize(path)
-        if file_size > max_bytes:
-            logger.warning(f"JSON file too large ({file_size:,} bytes > {max_bytes:,}): {path}")
-            return None
-        with open(path, encoding="utf-8") as f:
-            return json.load(f)
-    except (json.JSONDecodeError, OSError) as e:
-        logger.warning(f"Could not load JSON: {path}: {e}")
-        return None
+logger = get_logger(__name__)
 
 
 class ContextManager:
     """Manages context.md for tracking generation evolution in a run"""
 
-    def __init__(self, run_directory: str, run_config: dict[str, Any]):
+    def __init__(self, run_directory: str, run_config: dict[str, Any], config: Config | None = None):
         """
         Initialize the context manager.
 
@@ -62,13 +37,15 @@ class ContextManager:
                 - task_model: Task-agent model name
                 - backend: Backend type ('claude' or 'openhands')
                 - max_gen: Maximum number of generations
+            config: Optional Config instance for tunables (defaults to Config()).
         """
         self.run_dir = run_directory
         self.context_path = os.path.join(run_directory, "context.md")
         self.config = run_config
+        self.cfg = config or Config()
         self.generations = []
-        self.meta_model = run_config.get("meta_model", Config.DEFAULT_CLAUDE_META_MODEL)
-        self.backend = run_config.get("backend", Config.DEFAULT_BACKEND)
+        self.meta_model = run_config.get("meta_model", self.cfg.DEFAULT_CLAUDE_META_MODEL)
+        self.backend = run_config.get("backend", self.cfg.DEFAULT_BACKEND)
 
     def initialize(self):
         """Create context.md with header information"""
@@ -150,12 +127,12 @@ class ContextManager:
 
 **PREVIOUS AGENT CODE** (gen_{gen_num - 1}/target_agent.py):
 ```python
-{prev_agent_code[: Config.AGENT_CODE_PREVIEW_LIMIT]}{"..." if len(prev_agent_code) > Config.AGENT_CODE_PREVIEW_LIMIT else ""}
+{prev_agent_code[: self.cfg.AGENT_CODE_PREVIEW_LIMIT]}{"..." if len(prev_agent_code) > self.cfg.AGENT_CODE_PREVIEW_LIMIT else ""}
 ```
 
 **CURRENT AGENT CODE** (gen_{gen_num}/target_agent.py):
 ```python
-{current_agent_code[: Config.AGENT_CODE_PREVIEW_LIMIT]}{"..." if len(current_agent_code) > Config.AGENT_CODE_PREVIEW_LIMIT else ""}
+{current_agent_code[: self.cfg.AGENT_CODE_PREVIEW_LIMIT]}{"..." if len(current_agent_code) > self.cfg.AGENT_CODE_PREVIEW_LIMIT else ""}
 ```
 
 **METRICS COMPARISON**:
@@ -179,7 +156,7 @@ class ContextManager:
 
                     await run_agent(
                         model_name=self.meta_model,
-                        max_turns=str(Config.CONTEXT_SUMMARY_MAX_TURNS),
+                        max_turns=str(self.cfg.CONTEXT_SUMMARY_MAX_TURNS),
                         prompt=file_prompt,
                         agent_working_directory=temp_dir,
                         backend=self.backend,
@@ -513,8 +490,8 @@ class ContextManager:
                 for insight in insights[:3]:
                     # Truncate very long insights
                     insight_text = (
-                        insight[: Config.INSIGHT_PREVIEW_LIMIT] + "..."
-                        if len(insight) > Config.INSIGHT_PREVIEW_LIMIT
+                        insight[: self.cfg.INSIGHT_PREVIEW_LIMIT] + "..."
+                        if len(insight) > self.cfg.INSIGHT_PREVIEW_LIMIT
                         else insight
                     )
                     entry += f"  * {insight_text}\n"

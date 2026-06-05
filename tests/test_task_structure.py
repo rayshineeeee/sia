@@ -13,9 +13,9 @@ SKIP_DIRS = {"_shared"}
 
 
 def _task_dirs():
-    """Yield task directory paths (skip _shared and hidden dirs)."""
+    """Yield task directory paths (skip _shared, __pycache__, and hidden dirs)."""
     for p in sorted(TASKS_DIR.iterdir()):
-        if p.is_dir() and p.name not in SKIP_DIRS and not p.name.startswith("."):
+        if p.is_dir() and p.name not in SKIP_DIRS and not p.name.startswith((".", "_")):
             yield p
 
 

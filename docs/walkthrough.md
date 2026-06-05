@@ -52,18 +52,18 @@ Bundled task (for comparison):
 sia --task gpqa --max_gen 5 --run_id 1
 ```
 
-With OpenHands + Gemini:
+With a meta agent on OpenHands + Gemini (author `./profiles/gemini-meta.json` with
+`"backend": "openhands"`, `"model": "gemini/gemini-3.1-pro-preview"`, `"provider_id": "gemini"`):
 
 ```bash
 sia \
   --task_dir ./my-tasks/gpqa \
   --max_gen 5 \
   --run_id 1 \
-  --backend openhands \
-  --meta_model "gemini/gemini-3.1-pro-preview"
+  --meta-profile gemini-meta
 ```
 
-See [configuration.md](configuration.md) for the full list of backends and models.
+See [configuration.md](configuration.md) for the full profile/provider schema and more examples.
 
 ## Step 3: Analyze results
 
