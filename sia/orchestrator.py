@@ -59,6 +59,7 @@ from sia.layout import BUNDLED_TASKS, Names, RunLayout, TaskLayout, resolve_task
 from sia.logging_setup import configure_logging, get_logger
 from sia.profiles import AgentProfile, load_profile
 from sia.prompts import build_feedback_prompt, build_meta_prompt
+from sia.providers import Provider
 from sia.results import FeedbackContext, TargetAgentResult
 from sia.run_setup import RunSetup, TaskFiles, load_task_files, setup_run_directory
 from sia.util import run_agent
@@ -545,7 +546,8 @@ def _run_feedback_agent(
     meta_profile: AgentProfile,
     env_config: Config,
     dataset_dir: str,
-    stdout_log_file: str,
+    task_model: str,
+    target_provider: Provider,
 ) -> None:
     """Run the feedback agent to create an improved target agent."""
     agent_py = Path(os.path.join(run_dir, f"gen_{current_gen}"), Names.TARGET_AGENT).read_text(encoding="utf-8")
@@ -565,7 +567,8 @@ def _run_feedback_agent(
         run_dir=run_dir,
         next_gen_dir=next_gen_dir,
         previous_gens=previous_gens_text,
-        stdout_log_file=stdout_log_file,
+        task_model=task_model,
+        provider=target_provider,
     )
 
     os.makedirs(next_gen_dir, exist_ok=True)
@@ -599,6 +602,8 @@ def run_generation(
     meta_profile: AgentProfile,
     sandbox: str,
     env_config: Config,
+    task_model: str,
+    target_provider: Provider,
 ) -> None:
     """Execute one generation: run target agent, evaluate, optionally run feedback agent."""
     run_dir = run_setup.run_directory
@@ -681,7 +686,8 @@ def run_generation(
             meta_profile=meta_profile,
             env_config=env_config,
             dataset_dir=dataset_dir,
-            stdout_log_file=stdout_log_file,
+            task_model=task_model,
+            target_provider=target_provider,
         )
     else:
         logger.info(f"Generation {current_gen} is the final generation. Skipping feedback agent.")
@@ -811,6 +817,8 @@ def main():
             meta_profile=meta_profile,
             sandbox=args.sandbox,
             env_config=env_config,
+            task_model=task_model,
+            target_provider=target_provider,
         )
 
     # Finalize context with summary statistics

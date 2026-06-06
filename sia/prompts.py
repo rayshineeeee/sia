@@ -140,12 +140,13 @@ def build_feedback_prompt(
     run_dir: str,
     next_gen_dir: str,
     previous_gens: str,
-    stdout_log_file: str,
+    task_model: str,
+    provider: Provider | None = None,
 ) -> str:
     """Build the feedback agent prompt for improving the target agent."""
     context_md_path = os.path.join(run_dir, "context.md")
 
-    return f"""You are an expert AI Engineer analyzing agent scaffolds for iterative improvement.
+    base = f"""You are an expert AI Engineer analyzing agent scaffolds for iterative improvement.
 
 **GENERATION CONTEXT**:
 - Current generation: {current_gen}
@@ -233,3 +234,6 @@ Follow these steps:
 
 NOTE: The agent execution log may be incomplete or contain errors if the target agent crashed. If you see an "error" field, focus on making the agent more robust to prevent such failures.
 """
+    if provider is None or provider.client_kind != "openai":
+        return base
+    return build_target_client_setup(provider, task_model) + base
