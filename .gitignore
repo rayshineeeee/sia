@@ -1,3 +1,10 @@
+# --- jonslop / hackathon local artifacts (never commit) ---
+.DS_Store
+**/.DS_Store
+# Hugging Face model cache for SIA tasks (large binaries, e.g. 600MB CLIP weights)
+**/.hfcache/
+jonslop/tasks/*/.hfcache/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
