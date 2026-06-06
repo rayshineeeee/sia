@@ -12,9 +12,10 @@ from sia.orchestrator import (
     _run_target_agent,
     run_generation,
 )
-from sia.profiles import load_meta_agent_profile
+from sia.profiles import load_meta_agent_profile, load_target_agent_profile
 
 DEFAULT_META_PROFILE = load_meta_agent_profile("default-meta")
+DEFAULT_TARGET_PROFILE = load_target_agent_profile("default-target")
 
 
 def _make_task_files(tmp_path):
@@ -146,6 +147,8 @@ def test_single_generation_creates_context(mock_run_ta, mock_run_fb, tmp_path):
         meta_profile=DEFAULT_META_PROFILE,
         sandbox="none",
         env_config=Config(),
+        task_model=DEFAULT_TARGET_PROFILE.model,
+        target_provider=DEFAULT_TARGET_PROFILE.provider,
     )
 
     # Verify context.md was updated
@@ -176,6 +179,8 @@ def test_run_generation_directory_structure(mock_run_ta, mock_run_fb, tmp_path):
         meta_profile=DEFAULT_META_PROFILE,
         sandbox="none",
         env_config=Config(),
+        task_model=DEFAULT_TARGET_PROFILE.model,
+        target_provider=DEFAULT_TARGET_PROFILE.provider,
     )
 
     gen_dir = Path(run_setup.run_directory) / "gen_1"
@@ -215,6 +220,8 @@ def test_two_generations_with_feedback(mock_run_ta, mock_run_fb, mock_llm, tmp_p
         meta_profile=DEFAULT_META_PROFILE,
         sandbox="none",
         env_config=Config(),
+        task_model=DEFAULT_TARGET_PROFILE.model,
+        target_provider=DEFAULT_TARGET_PROFILE.provider,
     )
     mock_run_fb.assert_called_once()
 
@@ -229,6 +236,8 @@ def test_two_generations_with_feedback(mock_run_ta, mock_run_fb, mock_llm, tmp_p
         meta_profile=DEFAULT_META_PROFILE,
         sandbox="none",
         env_config=Config(),
+        task_model=DEFAULT_TARGET_PROFILE.model,
+        target_provider=DEFAULT_TARGET_PROFILE.provider,
     )
     assert mock_run_fb.call_count == 1  # still only called once
 

@@ -23,7 +23,7 @@ from __future__ import annotations
 import shutil
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, cast
 
 from sia.layout import Names
 
@@ -64,14 +64,15 @@ def parse_agent_reference(spec: object, base_dir: str | Path | None = None) -> A
     if not isinstance(spec, dict) or "source" not in spec:
         raise SystemExit('agent_reference must be "default" or an object with a "source" field')
 
+    data = cast("dict[str, Any]", spec)
     base = Path(base_dir) if base_dir else Path.cwd()
-    source = Path(spec["source"])
+    source = Path(data["source"])
     if not source.is_absolute():
         source = base / source
     source = source.resolve()
 
     if source.is_dir():
-        return AgentReference(kind="dir", source=source, entrypoint=spec.get("entrypoint"))
+        return AgentReference(kind="dir", source=source, entrypoint=data.get("entrypoint"))
     if source.is_file():
         return AgentReference(kind="file", source=source)
     raise SystemExit(f"agent_reference source not found: {source}")

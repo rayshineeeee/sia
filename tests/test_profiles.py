@@ -39,6 +39,7 @@ def test_kimi_nebius_target_profile_resolves_provider():
     assert p.agent_reference.kind == "default"
     assert p.model == "moonshotai/Kimi-K2.6"
     assert p.provider.provider_id == "nebius"
+    assert p.provider.base_url is not None
     assert p.provider.base_url.endswith("nebius.com/v1/")
 
 
@@ -98,4 +99,5 @@ def test_target_profile_file_reference(tmp_path):
     )
     profile = load_target_agent_profile(path)
     assert profile.agent_reference.kind == "file"
+    assert profile.agent_reference.source is not None
     assert profile.agent_reference.source.name == "my_agent.py"

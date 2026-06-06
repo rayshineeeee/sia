@@ -79,8 +79,10 @@ def test_list_runs_summary(runs_root):
 def test_get_run_detail_and_domains(runs_root):
     detail = rd.get_run(runs_root, "run_7")
     assert detail is not None
+    assert detail.context_md is not None
     assert detail.context_md.startswith("# Run Context")
     gen1 = next(g for g in detail.generations if g.name == "gen_1")
+    assert gen1.eval is not None
     assert gen1.eval.accuracy_percent == 50.0
     assert "target_agent" in gen1.artifacts
     assert "meta_prompt" in gen1.artifacts
@@ -94,11 +96,13 @@ def test_eval_details_and_artifacts(runs_root):
     details = rd.get_eval_details(runs_root, "run_7", "gen_1")
     assert details is not None and len(details) == 4
     assert rd.get_artifact_text(runs_root, "run_7", "gen_1", "target_agent") == "print('hello')\n"
-    assert rd.get_artifact_text(runs_root, "run_7", "gen_2", "improvement").startswith("# Plan")
+    improvement = rd.get_artifact_text(runs_root, "run_7", "gen_2", "improvement")
+    assert improvement is not None and improvement.startswith("# Plan")
 
 
 def test_trajectory_normalization(runs_root):
     turns = rd.get_trajectory(runs_root, "run_7", "gen_1", 1)
+    assert turns is not None
     assert [t["role"] for t in turns] == ["system", "user", "assistant"]
     assert turns[0]["text"] == "You are an expert."
     assert turns[1]["text"] == "Question 1?"

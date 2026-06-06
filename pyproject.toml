@@ -94,6 +94,7 @@ known-first-party = ["sia"]
 
 [tool.ty.environment]
 python-version = "3.11"
+extra-paths = ["tests"]
 
 [tool.ty.src]
 # Task reference agents are shipped as templates (read as text by the meta-agent),

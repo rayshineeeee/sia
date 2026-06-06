@@ -62,6 +62,6 @@ def test_feedback_prompt_golden():
         run_dir="/RUN/run_1",
         next_gen_dir="/RUN/run_1/gen_3",
         previous_gens="1",
-        stdout_log_file="/RUN/run_1/gen_2/target_agent_stdout.log",
+        task_model="claude-haiku-4-5-20251001",
     )
     assert_golden("feedback_prompt.txt", prompt)
