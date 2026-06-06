@@ -78,8 +78,13 @@ def neutral_gray_input() -> Image.Image:
     return Image.fromarray(arr, mode="RGB")
 
 
-def render_shader(fragment_shader: str, input_img: Image.Image, u_time: float = 0.0) -> Image.Image:
-    """Render a single frame. Raises on compile error."""
+def render_frames(
+    fragment_shader: str, input_img: Image.Image, num_frames: int = 8
+) -> list[Image.Image]:
+    """Render `num_frames` animation frames over u_time in [0,1). Raises on compile
+    error. The trusted judge re-renders 8 frames and scores the BEST one, so an
+    improved agent MAY render multiple frames and keep the best (this seed renders
+    only one and does not use this headroom)."""
     input_img = input_img.convert("RGB").resize(OUTPUT_SIZE)
     input_arr = np.asarray(input_img, dtype=np.uint8)
 
@@ -99,21 +104,28 @@ def render_shader(fragment_shader: str, input_img: Image.Image, u_time: float = 
             program["u_input"] = 0
         if "u_resolution" in program:
             program["u_resolution"] = OUTPUT_SIZE
-        if "u_time" in program:
-            program["u_time"] = float(u_time)
 
-        fbo.clear(0.0, 0.0, 0.0, 1.0)
-        vao.render(mode=moderngl.TRIANGLES)
-        data = fbo.read(components=3)
-        img = Image.frombytes("RGB", OUTPUT_SIZE, data)
+        frames: list[Image.Image] = []
+        for f in range(num_frames):
+            if "u_time" in program:
+                program["u_time"] = float(f) / float(max(num_frames, 1))
+            fbo.clear(0.0, 0.0, 0.0, 1.0)
+            vao.render(mode=moderngl.TRIANGLES)
+            data = fbo.read(components=3)
+            frames.append(Image.frombytes("RGB", OUTPUT_SIZE, data))
 
         vao.release()
         vbo.release()
         texture.release()
         fbo.release()
-        return img
+        return frames
     finally:
         ctx.release()
+
+
+def render_shader(fragment_shader: str, input_img: Image.Image, u_time: float = 0.0) -> Image.Image:
+    """Render a single frame. Raises on compile error."""
+    return render_frames(fragment_shader, input_img, num_frames=1)[0]
 
 
 # ---------------------------------------------------------------------------
