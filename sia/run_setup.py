@@ -6,6 +6,7 @@ defined in orchestrator.py (re-exported there for the existing test contract).
 
 from __future__ import annotations
 
+import dataclasses
 import json
 import os
 import shutil
@@ -23,6 +24,7 @@ from sia.logging_setup import get_logger
 
 if TYPE_CHECKING:
     from sia.agent_reference import ResolvedAgentReference
+    from sia.profiles import MetaAgentProfile, TargetAgentProfile
 
 logger = get_logger(__name__)
 
@@ -113,6 +115,30 @@ def install_requirements(venv_dir: str, requirements_path: str) -> None:
     subprocess.run(cmd, check=True)
 
 
+def _write_run_profiles(
+    run_directory: str,
+    meta_profile: MetaAgentProfile | None,
+    target_profile: TargetAgentProfile | None,
+) -> None:
+    """Persist the resolved meta/target profiles as ``profiles.json`` in the run dir.
+
+    Dumping the whole profile object (provider details + resolved agent_reference,
+    whose ``source`` is already an absolute path) means the web visualizer renders
+    full profile detail generically — no per-field plumbing, and new profile fields
+    show up automatically.
+    """
+    profiles = {
+        role: dataclasses.asdict(profile)
+        for role, profile in (("meta", meta_profile), ("target", target_profile))
+        if profile is not None
+    }
+    if not profiles:
+        return
+    path = os.path.join(run_directory, "profiles.json")
+    with open(path, "w", encoding="utf-8") as fh:
+        json.dump(profiles, fh, indent=2, default=str)  # default=str: Path -> string
+
+
 def setup_run_directory(
     run_id: int,
     task_dir: str,
@@ -121,6 +147,8 @@ def setup_run_directory(
     agent_impl: str,
     max_gen: int,
     config: Config | None = None,
+    meta_profile: MetaAgentProfile | None = None,
+    target_profile: TargetAgentProfile | None = None,
 ) -> RunSetup:
     """Create run directories, venv, and context manager."""
     cfg = config or Config()
@@ -142,6 +170,8 @@ def setup_run_directory(
     venv_dir = layout.venv_dir
     logger.info(f"Creating virtual environment at: {venv_dir}")
     _create_venv(venv_dir, cfg.VENV_PACKAGES)
+
+    _write_run_profiles(run_directory, meta_profile, target_profile)
 
     logger.info("Initializing context manager...")
     context_mgr = ContextManager(

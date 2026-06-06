@@ -47,6 +47,31 @@
   .meta-card .k { color: var(--muted); font-size: 11px; text-transform: uppercase;
     letter-spacing: .6px; }
   .meta-card .v { margin-top: 4px; font-family: var(--mono); font-size: 13px; word-break: break-word; }
+  /* Profile chips: 3 compact summary chips (meta / target / task), each with a
+     hover/focus tooltip carrying the full detail so the run header stays tiny. */
+  .chip-row { display: flex; gap: 10px; flex-wrap: wrap; margin: 12px 0 20px; }
+  .pchip { position: relative; flex: 1 1 0; min-width: 200px; background: var(--panel);
+    border: 1px solid var(--border); border-radius: 10px; padding: 8px 12px; cursor: help;
+    display: flex; align-items: center; gap: 12px; }
+  .pchip:hover, .pchip:focus-within { border-color: var(--accent); outline: none; }
+  .pchip-col { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+  .pchip .k { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .6px; }
+  .pchip-val { font-family: var(--mono); font-size: 13px; overflow: hidden;
+    text-overflow: ellipsis; white-space: nowrap; }
+  .pchip-tip { position: absolute; top: calc(100% + 6px); left: 0; z-index: 30;
+    min-width: 420px; max-width: min(760px, 92vw); background: var(--panel-2);
+    border: 1px solid var(--accent); border-radius: 10px; padding: 12px 14px;
+    box-shadow: 0 10px 28px rgba(0,0,0,.5); opacity: 0; visibility: hidden;
+    transform: translateY(-4px); transition: opacity .12s ease, transform .12s ease;
+    pointer-events: none; }
+  .pchip-tip--right { left: auto; right: 0; }
+  .pchip:hover .pchip-tip, .pchip:focus-within .pchip-tip {
+    opacity: 1; visibility: visible; transform: translateY(0); }
+  .kv { display: flex; gap: 10px; align-items: baseline; margin-bottom: 5px; }
+  .kv:last-child { margin-bottom: 0; }
+  .kv-k { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .6px;
+    min-width: 76px; flex-shrink: 0; }
+  .kv-v { font-family: var(--mono); font-size: 12.5px; word-break: break-word; }
   h2 { font-size: 18px; margin: 24px 0 8px; }
   h3 { font-size: 15px; margin: 18px 0 8px; color: var(--muted); }
   .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin: 8px 0 16px;
@@ -231,7 +256,7 @@ function renderSidebar() {
       h("div", { class: "top" },
         h("span", { class: "name" }, r.name),
         h("span", { class: "badge " + pctClass(p) }, fmtPct(p))),
-      h("div", { class: "sub" }, `${r.backend || "?"} · ${r.task_model || r.meta_model || "?"} · ${r.num_generations} gen`)));
+      h("div", { class: "sub" }, `${r.agent_impl || "?"} · ${r.task_model || r.meta_model || "?"} · ${r.num_generations} gen`)));
   }
   syncSidebarActive();
 }
@@ -278,6 +303,51 @@ async function route() {
   mountGen(detail);
 }
 
+// Flatten a (possibly nested) object into [dotted-key, value] rows, skipping
+// null/empty so the whole profile JSON renders generically — new profile fields
+// appear automatically without touching this code.
+function flattenRows(obj, prefix = "") {
+  const rows = [];
+  for (const [k, v] of Object.entries(obj || {})) {
+    if (v == null || v === "") continue;
+    const key = prefix ? `${prefix}.${k}` : k;
+    if (typeof v === "object" && !Array.isArray(v)) rows.push(...flattenRows(v, key));
+    else rows.push([key, Array.isArray(v) ? v.join(", ") : String(v)]);
+  }
+  return rows;
+}
+
+// Three compact profile chips (meta / target / task). Each shows a label + key
+// value inline, with a hover/focus tooltip rendering the full profile JSON so the
+// run header stays tiny. Falls back to context.md fields for pre-profiles.json runs.
+function profileChips(run) {
+  const p = run.profiles || {};
+  const defs = [
+    { label: "Meta agent", value: p.meta?.model || p.meta?.name || run.meta_model,
+      obj: p.meta || (run.meta_model ? { model: run.meta_model, agent_impl: run.agent_impl } : null) },
+    { label: "Target agent", value: p.target?.model || p.target?.name || run.task_model,
+      obj: p.target || (run.task_model ? { model: run.task_model } : null) },
+    { label: "Task", value: run.task,
+      obj: { task: run.task, max_generations: run.max_generations } },
+  ].filter(d => d.value != null && d.value !== "");
+
+  const row = h("div", { class: "chip-row" });
+  defs.forEach((d, i) => {
+    const rows = flattenRows(d.obj);
+    const tipClass = "pchip-tip" + (i === defs.length - 1 ? " pchip-tip--right" : "");
+    const tip = h("div", { class: tipClass }, rows.length
+      ? rows.map(([k, v]) => h("div", { class: "kv" },
+          h("span", { class: "kv-k" }, k), h("span", { class: "kv-v" }, v)))
+      : h("div", { class: "muted" }, "No profile detail"));
+    row.append(h("div", { class: "pchip", tabindex: "0" },
+      h("div", { class: "pchip-col" },
+        h("div", { class: "k" }, d.label),
+        h("div", { class: "pchip-val" }, String(d.value))),
+      tip));
+  });
+  return row;
+}
+
 // ---- Run view (static chrome: built once per run) ---------------------------
 function renderRun(run) {
   const main = $("#main");
@@ -286,13 +356,7 @@ function renderRun(run) {
   main.append(h("h2", { style: "margin-bottom:2px" }, run.name));
   if (run.started) main.append(h("div", { class: "muted", style: "font-size:12px;margin-bottom:8px" }, "Started " + run.started));
 
-  const metaItems = [
-    ["Backend", run.backend], ["Meta model", run.meta_model], ["Task model", run.task_model],
-    ["Task", run.task], ["Max generations", run.max_generations],
-  ];
-  main.append(h("div", { class: "meta-grid" },
-    metaItems.filter(([,v]) => v != null && v !== "").map(([k,v]) =>
-      h("div", { class: "meta-card" }, h("div", { class: "k" }, k), h("div", { class: "v" }, String(v))))));
+  main.append(profileChips(run));
 
   main.append(genChart(run.generations));
 

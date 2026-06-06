@@ -112,6 +112,9 @@ class RunDetail(BaseModel):
     agent_impl: str | None = None
     started: str | None = None
     max_generations: int | None = None
+    # Resolved meta/target agent profiles (full JSON from the run's profiles.json),
+    # rendered as-is in the profile chips. None for older runs predating profiles.json.
+    profiles: dict[str, Any] | None = None
     context_md: str | None = None
     generations: list[GenerationDetail] = []
 
@@ -269,6 +272,9 @@ def get_run(runs_root: Path, run_name: str) -> RunDetail | None:
 
     generations = [_generation_detail(gen_dir, gi) for gi, gen_dir in _gen_dirs(run_dir)]
 
+    profiles_data = _read_json(run_dir / "profiles.json")
+    profiles = profiles_data if isinstance(profiles_data, dict) else None
+
     return RunDetail(
         name=run_dir.name,
         index=int(m.group(1)),
@@ -278,6 +284,7 @@ def get_run(runs_root: Path, run_name: str) -> RunDetail | None:
         agent_impl=meta.get("agent impl"),
         started=meta.get("started"),
         max_generations=_as_int(meta.get("max generations")),
+        profiles=profiles,
         context_md=context_md,
         generations=generations,
     )

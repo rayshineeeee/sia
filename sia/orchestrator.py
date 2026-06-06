@@ -788,7 +788,17 @@ def main():
     # SECTION 2: Setup Run Directories
     # ========================
 
-    run_setup = setup_run_directory(run_id, task_dir, meta_model, task_model, agent_impl, max_gen, config=env_config)
+    run_setup = setup_run_directory(
+        run_id,
+        task_dir,
+        meta_model,
+        task_model,
+        agent_impl,
+        max_gen,
+        config=env_config,
+        meta_profile=meta_profile,
+        target_profile=target_profile,
+    )
 
     # ========================
     # SECTION 3: Build Initial Prompt
