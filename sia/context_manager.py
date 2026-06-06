@@ -369,9 +369,15 @@ class ContextManager:
                     if isinstance(value, (int, float, str, bool)):
                         metrics[key] = value
 
-        # Priority 3: Parse stdout
-        stdout_path = os.path.join(gen_dir, "target_agent_stdout.log")
-        if os.path.exists(stdout_path) and not metrics:
+        # Priority 3: Parse stdout (check both harness and weights mode log files)
+        stdout_path = None
+        for log_name in ("target_agent_stdout.log", "train_stdout.log"):
+            potential_path = os.path.join(gen_dir, log_name)
+            if os.path.exists(potential_path):
+                stdout_path = potential_path
+                break
+
+        if stdout_path and not metrics:
             metrics.update(self._parse_stdout_metrics(stdout_path))
 
         return metrics

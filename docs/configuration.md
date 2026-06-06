@@ -18,6 +18,8 @@ compatibility, `sia <flags>` with no sub-command is treated as `sia run <flags>`
 | `--run_id` | no | `1` | Unique run identifier |
 | `--meta-agent-profile` | no | `default-meta` | Profile for the meta/feedback agent (name or path to a `.json`) |
 | `--target-agent-profile` | no | `default-target` | Profile for the target agent (name or path to a `.json`) |
+| `--focus` | no | `harness` | Improvement focus: `harness` (code/prompt changes) or `weights` (RL-based tuning) |
+| `--training_sandbox` | no | `modal` | Sandbox environment for code execution during training rollouts (weights mode): `modal` (default) or `sandboxfusion` |
 | `--sandbox` | no | `none` | Target-agent isolation: `none` or `docker` |
 | `--no-web` | no | off | Don't auto-start the live dashboard during the run |
 | `--web-host` | no | `127.0.0.1` | Bind host for the live dashboard |
@@ -210,6 +212,69 @@ The same dashboard auto-starts in a background thread during `sia run` so you ca
 watch generations land live; pass `--no-web` to disable it, or `--web-port` /
 `--web-host` to change where it binds. If the `web` extra isn't installed, the
 run logs a warning and continues without the dashboard.
+
+## Weights Mode (RL-based tuning)
+
+SIA supports two improvement modes:
+
+### Harness Mode (default)
+Generates and improves the target agent's **code and prompts** across generations.
+
+```bash
+sia run --task gpqa --max_gen 5 --run_id 1
+```
+
+### Weights Mode
+Used tune model weights/parameters via the `tinker-cookbook` library. The meta-agent generates `train.py` (training script) instead of `target_agent.py`. During training, `train.py` performs rollouts (samples code solutions) in a sandbox, executes them to get outputs.
+
+**Requirements:**
+- `TINKER_API_KEY` environment variable (required)
+- `MODAL_TOKEN_ID` and `MODAL_TOKEN_SECRET` if using Modal (default)
+
+```bash
+export TINKER_API_KEY="your-tinker-api-key"
+export MODAL_TOKEN_ID="your-modal-token-id"
+export MODAL_TOKEN_SECRET="your-modal-token-secret"
+
+sia run --task gpqa --max_gen 5 --run_id 1 --focus weights --training_sandbox modal
+```
+
+### Training Sandbox Options
+
+When using weights mode, choose the sandbox environment where rollout code execution happens (where sampled code solutions are executed during training):
+
+- **Modal** (default): Cloud-based execution, requires `MODAL_TOKEN_ID` and `MODAL_TOKEN_SECRET`
+- **SandboxFusion**: Local Docker-based execution service
+
+#### SandboxFusion Setup
+
+Start the SandboxFusion service on your host (requires Docker and 40GB+ free disk):
+
+```bash
+docker run \
+  --rm \
+  -it \
+  -p 8080:8080 \
+  --name sia-sandbox-fusion \
+  volcengine/sandbox-fusion:server-20250609
+```
+
+Then run SIA with SandboxFusion:
+
+```bash
+export TINKER_API_KEY="your-tinker-api-key"
+
+sia run --task gpqa --max_gen 5 --run_id 1 \
+    --focus weights \
+    --training_sandbox sandboxfusion
+```
+
+The orchestrator automatically passes the SandboxFusion URL to train.py via the `SANDBOX_URL` environment variable (defaults to `http://localhost:8080`). To use a custom URL:
+
+```bash
+export SANDBOX_URL="http://your-sandboxfusion-host:8080"
+sia run --task gpqa --max_gen 5 --run_id 1 --focus weights --training_sandbox sandboxfusion
+```
 
 ## Environment-variable defaults
 

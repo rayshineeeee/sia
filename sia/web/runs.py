@@ -37,8 +37,11 @@ TEXT_ARTIFACTS: dict[str, str] = {
     "feedback_prompt": "feedback_agent_prompt.txt",
     "improvement": "improvement.md",
     "eval_log": "evaluation.log",
-    "stdout_log": "target_agent_stdout.log",
+    "stdout_log": "target_agent_stdout.log",  # or train_stdout.log for weights mode
 }
+
+# Alternative filenames to check for stdout_log artifact
+_STDOUT_LOG_ALTS = ("target_agent_stdout.log", "train_stdout.log")
 
 # Candidate names for the structured evaluation summary, in priority order.
 _EVAL_RESULT_NAMES = ("evaluation_results.json", "results.json")
@@ -291,7 +294,14 @@ def get_run(runs_root: Path, run_name: str) -> RunDetail | None:
 
 
 def _generation_detail(gen_dir: Path, index: int) -> GenerationDetail:
-    artifacts = [label for label, fname in TEXT_ARTIFACTS.items() if (gen_dir / fname).is_file()]
+    artifacts = []
+    for label, fname in TEXT_ARTIFACTS.items():
+        # For stdout_log, check both harness and weights mode variants
+        if label == "stdout_log":
+            if any((gen_dir / alt).is_file() for alt in _STDOUT_LOG_ALTS):
+                artifacts.append(label)
+        elif (gen_dir / fname).is_file():
+            artifacts.append(label)
     return GenerationDetail(
         name=gen_dir.name,
         index=index,
@@ -351,6 +361,15 @@ def get_artifact_text(runs_root: Path, run_name: str, gen_name: str, label: str)
     gen_dir = _resolve_gen(runs_root, run_name, gen_name)
     if fname is None or gen_dir is None:
         return None
+
+    # For stdout_log, check both harness and weights mode variants
+    if label == "stdout_log":
+        for alt_fname in _STDOUT_LOG_ALTS:
+            alt_path = gen_dir / alt_fname
+            if alt_path.is_file():
+                return _read_text(alt_path)
+        return None
+
     return _read_text(gen_dir / fname)
 
 

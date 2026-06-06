@@ -22,10 +22,12 @@ class Names:
 
     # Run / generation artifacts
     TARGET_AGENT = "target_agent.py"
+    TRAIN_SCRIPT = "train.py"
     AGENT_EXECUTION_JSON = "agent_execution.json"
     AGENT_EXECUTION_DIR = "agent_execution"
     EXECUTION_GLOB = "execution_q*.json"
     STDOUT_LOG = "target_agent_stdout.log"
+    TRAIN_STDOUT_LOG = "train_stdout.log"
     EVAL_LOG = "evaluation.log"
     RESULTS_JSON = "results.json"
     CONTEXT_MD = "context.md"
@@ -128,8 +130,15 @@ class RunLayout:
     def target_agent(self, n: int) -> str:
         return os.path.join(self.gen_dir(n), Names.TARGET_AGENT)
 
-    def stdout_log(self, n: int) -> str:
-        return os.path.join(self.gen_dir(n), Names.STDOUT_LOG)
+    def stdout_log(self, n: int, focus: str = "harness") -> str:
+        """Return stdout log path based on improvement focus mode.
+
+        Args:
+            n: Generation number
+            focus: "harness" (code/prompt improvements) or "weights" (RL-based tuning)
+        """
+        log_name = Names.TRAIN_STDOUT_LOG if focus == "weights" else Names.STDOUT_LOG
+        return os.path.join(self.gen_dir(n), log_name)
 
     def improvement_md(self, n: int) -> str:
         return os.path.join(self.gen_dir(n), Names.IMPROVEMENT_MD)

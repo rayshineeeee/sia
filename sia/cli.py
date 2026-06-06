@@ -81,6 +81,21 @@ def _add_run_args(parser: argparse.ArgumentParser, env_config: Config) -> None:
         help="Sandbox mode for target agent execution: none (default) or docker (requires Docker)",
     )
     parser.add_argument(
+        "--focus",
+        type=str,
+        default="harness",
+        choices=["harness", "weights"],
+        help="Focus of improvement: 'harness' (default) for code/prompt changes or 'weights' for RL-based weight tuning",
+    )
+    parser.add_argument(
+        "--training_sandbox",
+        dest="training_sandbox",
+        type=str,
+        default="modal",
+        choices=["modal", "sandboxfusion"],
+        help="Sandbox for train.py code execution in weights mode (default: modal). Use 'sandboxfusion' for SandboxFusion service.",
+    )
+    parser.add_argument(
         "--log-level",
         dest="log_level",
         type=str,

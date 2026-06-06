@@ -288,7 +288,7 @@ def _print_welcome():
     print(banner)
 
 
-def _stream_to_log(cmd: list[str], stdout_log_file: str) -> int:
+def _stream_to_log(cmd: list[str], stdout_log_file: str, env: dict | None = None) -> int:
     """Run ``cmd``, streaming merged stdout/stderr to the console and a log file.
 
     Returns the process exit code. This is the single place the target agent
@@ -301,6 +301,7 @@ def _stream_to_log(cmd: list[str], stdout_log_file: str) -> int:
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
+            env=env,
         )
         for line in process.stdout:
             print(line, end="")
@@ -315,11 +316,13 @@ def _run_target_agent_sandboxed(
     working_dir: str,
     stdout_log_file: str,
     config: Config,
+    sandbox_url: str = "http://localhost:8080",
 ) -> int:
     """Run target agent inside a Docker container for isolation.
 
     Mounts dataset_dir as read-only and working_dir as read-write.
     Network access is disabled.
+    Passes SANDBOX_URL environment variable for SandboxFusion connectivity.
     """
     docker_cmd = [
         "docker",
@@ -330,6 +333,8 @@ def _run_target_agent_sandboxed(
         "--memory",
         config.DOCKER_MEMORY_LIMIT,
         f"--cpus={config.DOCKER_CPU_LIMIT}",
+        "-e",
+        f"SANDBOX_URL={sandbox_url}",
         "-v",
         f"{dataset_dir}:/data:ro",
         "-v",
@@ -362,8 +367,17 @@ def _run_target_agent(
     """
     python_exec = venv_python_path(venv_dir)
 
+    # Prepare environment with SANDBOX_URL for SandboxFusion connectivity
+    # This allows target agents (especially train.py with RL) to reach the SandboxFusion service
+    env = os.environ.copy()
+    sandbox_url = os.getenv("SANDBOX_URL", "http://localhost:8080")
+    env["SANDBOX_URL"] = sandbox_url
+    logger.info(f"  → SANDBOX_URL: {sandbox_url}")
+
     try:
         if sandbox == "docker":
+            # Use Docker-internal address for SandboxFusion connectivity from container
+            docker_sandbox_url = os.getenv("SANDBOX_URL", "http://host.docker.internal:8080")
             return_code = _run_target_agent_sandboxed(
                 python_exec=python_exec,
                 target_agent_path=target_agent_path,
@@ -371,10 +385,11 @@ def _run_target_agent(
                 working_dir=gen_dir,
                 stdout_log_file=stdout_log_file,
                 config=env_config,
+                sandbox_url=docker_sandbox_url,
             )
         else:
             cmd = [python_exec, "-u", target_agent_path, "--dataset_dir", abs_dataset_dir, "--working_dir", gen_dir]
-            return_code = _stream_to_log(cmd, stdout_log_file)
+            return_code = _stream_to_log(cmd, stdout_log_file, env=env)
 
         with open(stdout_log_file, encoding="utf-8") as f:
             stdout = f.read()
@@ -549,10 +564,22 @@ def _run_feedback_agent(
     dataset_dir: str,
     task_model: str,
     target_provider: Provider,
+    focus: str = "harness",
     resolved_ref: ResolvedAgentReference | None = None,
 ) -> None:
-    """Run the feedback agent to create an improved target agent."""
-    agent_py = Path(os.path.join(run_dir, f"gen_{current_gen}"), Names.TARGET_AGENT).read_text(encoding="utf-8")
+    """Run the feedback agent to create an improved target agent or train.py.
+
+    Args:
+        focus: "harness" (default) for code improvement or "weights" for RL-based tuning
+    """
+    # Read the appropriate agent file based on focus mode
+    gen_dir = os.path.join(run_dir, f"gen_{current_gen}")
+    if focus == "weights":
+        agent_file = os.path.join(gen_dir, Names.TRAIN_SCRIPT)
+    else:
+        agent_file = os.path.join(gen_dir, Names.TARGET_AGENT)
+
+    agent_py = Path(agent_file).read_text(encoding="utf-8")
     task = Path(dataset_dir, "task.md").read_text(encoding="utf-8")
 
     previous_gens_list = list(range(1, current_gen)) if current_gen > 1 else []
@@ -576,6 +603,7 @@ def _run_feedback_agent(
         task_model=task_model,
         provider=target_provider,
         requirements_dir=requirements_dir,
+        focus=focus,
     )
 
     os.makedirs(next_gen_dir, exist_ok=True)
@@ -616,17 +644,28 @@ def run_generation(
     env_config: Config,
     task_model: str,
     target_provider: Provider,
+    focus: str = "harness",
+    training_sandbox: str = "modal",
     resolved_ref: ResolvedAgentReference | None = None,
 ) -> None:
-    """Execute one generation: run target agent, evaluate, optionally run feedback agent."""
+    """Execute one generation: run target agent, evaluate, optionally run feedback agent.
+
+    Args:
+        focus: "harness" for code improvement or "weights" for RL-based tuning
+        training_sandbox: "modal" (default) or "sandboxfusion" for train.py code execution
+    """
     run_dir = run_setup.run_directory
     layout = RunLayout(run_dir)
     gen_dir = layout.gen_dir(current_gen)
-    target_agent_path = layout.target_agent(current_gen)
-    stdout_log_file = layout.stdout_log(current_gen)
+
+    # Use train.py for weights mode (RL tuning), target_agent.py for harness mode
+    target_agent_path = os.path.join(gen_dir, "train.py") if focus == "weights" else layout.target_agent(current_gen)
+
+    stdout_log_file = layout.stdout_log(current_gen, focus=focus)
 
     logger.info(f"Running target agent: {target_agent_path}")
     logger.info(f"  → Stdout log: {stdout_log_file}")
+    logger.info(f"  → Focus mode: {focus}")
     logger.info("=" * 60)
 
     # Install this generation's declared dependencies (if the agent wrote a
@@ -707,6 +746,7 @@ def run_generation(
             dataset_dir=dataset_dir,
             task_model=task_model,
             target_provider=target_provider,
+            focus=focus,
             resolved_ref=resolved_ref,
         )
     else:
@@ -778,6 +818,31 @@ def main():
         if not os.getenv(prov.api_key_env):
             logger.warning(f"  ⚠ {prov.api_key_env} is not set; the {label} agent may fail to authenticate.")
 
+    # Check for required API keys when using weights mode
+    if args.focus == "weights":
+        # TINKER_API_KEY is always required for weights mode
+        if not os.getenv("TINKER_API_KEY"):
+            logger.error("✗ TINKER_API_KEY environment variable is required for weights mode (RL-based tuning).")
+            raise RuntimeError(
+                "TINKER_API_KEY not set. Please set the TINKER_API_KEY environment variable to use weights mode."
+            )
+
+        # MODAL_API_KEY is required if using modal sandbox
+        if args.training_sandbox == "modal" and not os.getenv("MODAL_TOKEN_ID"):
+            logger.error("✗ MODAL_TOKEN_ID environment variable is required when training_sandbox='modal'.")
+            raise RuntimeError(
+                "MODAL_TOKEN_ID not set. Please set MODAL_TOKEN_ID and MODAL_TOKEN_SECRET for Modal authentication."
+            )
+
+        # Warn about resource requirements for sandboxfusion
+        if args.training_sandbox == "sandboxfusion":
+            logger.warning(
+                "⚠ Using SandboxFusion sandbox. Ensure at least 40GB+ free disk space is available for Docker."
+            )
+            logger.warning(
+                "⚠ Make sure SandboxFusion is running on localhost:8080 or set SANDBOX_URL environment variable."
+            )
+
     # ========================
     # SECTION 1: Load Files from Task Directory
     # ========================
@@ -795,6 +860,7 @@ def main():
         task_model,
         agent_impl,
         max_gen,
+        focus=args.focus,
         config=env_config,
         meta_profile=meta_profile,
         target_profile=target_profile,
@@ -809,12 +875,21 @@ def main():
     copy_reference_into(resolved_ref, run_setup.meta_agent_working_directory)
     reference_dir = run_setup.meta_agent_working_directory if resolved_ref.ref_dir is not None else None
 
+    # Log focus mode and training sandbox
+    logger.info("Configuration (continued):")
+    logger.info(f"  - Focus mode: {args.focus}")
+    if args.focus == "weights":
+        logger.info(f"  - Training sandbox (for train.py code execution): {args.training_sandbox}")
+
+    # Build meta prompt based on focus mode (weights=RL tuning, harness=code improvement)
     meta_agent_prompt = build_meta_prompt(
         task_files,
         task_model,
         run_setup.meta_agent_working_directory,
         provider=target_provider,
         reference_dir=reference_dir,
+        focus=args.focus,
+        training_sandbox=args.training_sandbox,
     )
 
     # ========================
@@ -862,8 +937,18 @@ def main():
             env_config=env_config,
             task_model=task_model,
             target_provider=target_provider,
+            focus=args.focus,
+            training_sandbox=args.training_sandbox,
             resolved_ref=resolved_ref,
         )
+
+        # Early stopping for weights mode: if feedback agent signaled completion
+        if args.focus == "weights" and current_gen < max_gen:
+            next_gen = current_gen + 1
+            next_gen_dir = RunLayout(run_setup.run_directory).gen_dir(next_gen)
+            if os.path.exists(os.path.join(next_gen_dir, "COMPLETED")):
+                logger.info("Feedback agent signaled completion via COMPLETED file. Exiting evolution loop early.")
+                break
 
     # Finalize context with summary statistics
     logger.info("Finalizing context.md with summary statistics...")

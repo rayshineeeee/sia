@@ -146,11 +146,16 @@ def setup_run_directory(
     task_model: str,
     agent_impl: str,
     max_gen: int,
+    focus: str = "harness",
     config: Config | None = None,
     meta_profile: MetaAgentProfile | None = None,
     target_profile: TargetAgentProfile | None = None,
 ) -> RunSetup:
-    """Create run directories, venv, and context manager."""
+    """Create run directories, venv, and context manager.
+
+    Args:
+        focus: "harness" (default) or "weights" for RL-based tuning. Determines which packages are installed.
+    """
     cfg = config or Config()
     layout = RunLayout.for_run_id(run_id)
     run_directory = layout.run_dir
@@ -169,7 +174,11 @@ def setup_run_directory(
 
     venv_dir = layout.venv_dir
     logger.info(f"Creating virtual environment at: {venv_dir}")
-    _create_venv(venv_dir, cfg.VENV_PACKAGES)
+    # Build packages list conditionally based on focus mode
+    packages = cfg.VENV_PACKAGES.copy()
+    if focus == "weights":
+        packages.extend(cfg.WEIGHTS_VENV_PACKAGES)
+    _create_venv(venv_dir, packages)
 
     _write_run_profiles(run_directory, meta_profile, target_profile)
 
