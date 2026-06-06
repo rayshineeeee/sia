@@ -213,3 +213,8 @@ task_1/public/data
 
 data
 runs
+
+# Understand-Anything shareable graph output is committed separately.
+.understand-anything/intermediate/
+.understand-anything/tmp/
+.understand-anything/diff-overlay.json
