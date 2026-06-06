@@ -34,7 +34,7 @@ const controls: Array<{
   { key: "titleOpacity", label: "title fade", min: 0, max: 0.34, step: 0.01 },
   { key: "titleY", label: "title y", min: -32, max: 42, step: 1 },
   { key: "shaderScale", label: "shader size", min: 0.25, max: 2.8, step: 0.05 },
-  { key: "shaderOpacity", label: "shader fade", min: 0, max: 0.6, step: 0.01 },
+  { key: "shaderOpacity", label: "shader opacity", min: 0, max: 1, step: 0.01 },
   { key: "shaderSpin", label: "shader spin", min: 4, max: 96, step: 1 },
 ];
 

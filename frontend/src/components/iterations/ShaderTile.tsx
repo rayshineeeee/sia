@@ -1,42 +1,67 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { computeThomasAttractor } from "./thomasAttractor";
 import type { Iteration } from "./types";
+import { createProgram } from "./webgl";
+
+const PARTICLE_COUNT = 28000;
 
 const vertexShaderSource = `
-attribute vec2 position;
-varying vec2 vUv;
+attribute vec3 position;
+uniform float pointSize;
+uniform float seed;
+uniform float time;
+varying float vDepth;
+varying float vPulse;
+
+mat3 rotateX(float angle) {
+  float s = sin(angle);
+  float c = cos(angle);
+  return mat3(
+    1.0, 0.0, 0.0,
+    0.0, c, -s,
+    0.0, s, c
+  );
+}
+
+mat3 rotateY(float angle) {
+  float s = sin(angle);
+  float c = cos(angle);
+  return mat3(
+    c, 0.0, s,
+    0.0, 1.0, 0.0,
+    -s, 0.0, c
+  );
+}
 
 void main() {
-  vUv = position * 0.5 + 0.5;
-  gl_Position = vec4(position, 0.0, 1.0);
+  float drift = time * (0.12 + seed * 0.006);
+  vec3 point = rotateY(drift + seed * 0.11) * rotateX(0.62 + sin(time * 0.08 + seed) * 0.12) * position;
+  float depth = clamp(point.z * 0.48 + 0.54, 0.0, 1.0);
+  vec2 screen = point.xy * vec2(0.66, 0.82);
+
+  vDepth = depth;
+  vPulse = 0.72 + sin(time * 0.75 + seed + point.z * 4.0) * 0.12;
+  gl_Position = vec4(screen, 0.0, 1.0);
+  gl_PointSize = pointSize * (0.7 + depth * 1.7);
 }
 `;
 
 const fragmentShaderSource = `
 precision mediump float;
-
-uniform vec2 resolution;
-uniform float seed;
-uniform float time;
-varying vec2 vUv;
-
-float line(vec2 point, float angle, float width) {
-  vec2 rotated = mat2(cos(angle), -sin(angle), sin(angle), cos(angle)) * point;
-  return smoothstep(width, 0.0, abs(fract(rotated.y * 9.0) - 0.5));
-}
+varying float vDepth;
+varying float vPulse;
 
 void main() {
-  vec2 aspect = vec2(resolution.x / max(resolution.y, 1.0), 1.0);
-  vec2 point = (vUv - 0.5) * aspect;
-  float sweep = line(point + vec2(sin(time * 0.18 + seed) * 0.08, 0.0), seed * 0.37, 0.022);
-  float counter = line(point * 1.4, -seed * 0.21 - time * 0.03, 0.014);
-  float mask = smoothstep(0.68, 0.12, length(point));
-  float ink = max(sweep * 0.7, counter * 0.36) * mask;
-  vec3 paper = vec3(0.985, 0.985, 0.965);
-  vec3 black = vec3(0.04, 0.04, 0.038);
+  vec2 center = gl_PointCoord - 0.5;
+  float radius = dot(center, center);
+  float alpha = smoothstep(0.25, 0.02, radius) * (0.38 + vDepth * 0.72);
+  vec3 ember = vec3(0.92, 0.06, 0.0);
+  vec3 deepRed = vec3(0.34, 0.015, 0.0);
+  vec3 color = mix(deepRed, ember, vDepth) * vPulse;
 
-  gl_FragColor = vec4(mix(paper, black, ink), 1.0);
+  gl_FragColor = vec4(color, alpha);
 }
 `;
 
@@ -59,6 +84,7 @@ export function ShaderTile({
       alpha: false,
       antialias: false,
       depth: false,
+      powerPreference: "high-performance",
       stencil: false,
     });
     if (!gl) return;
@@ -67,19 +93,38 @@ export function ShaderTile({
     if (!program) return;
 
     const positionLocation = gl.getAttribLocation(program, "position");
-    const resolutionLocation = gl.getUniformLocation(program, "resolution");
+    const pointSizeLocation = gl.getUniformLocation(program, "pointSize");
     const seedLocation = gl.getUniformLocation(program, "seed");
     const timeLocation = gl.getUniformLocation(program, "time");
+
+    if (
+      positionLocation < 0 ||
+      !pointSizeLocation ||
+      !seedLocation ||
+      !timeLocation
+    ) {
+      gl.deleteProgram(program);
+      return;
+    }
+
+    const positions = computeThomasAttractor({
+      seed: iteration.id,
+      total: PARTICLE_COUNT,
+    });
     const buffer = gl.createBuffer();
-    const startedAt = performance.now();
-    let frame = 0;
+    if (!buffer) {
+      gl.deleteProgram(program);
+      return;
+    }
 
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-    gl.bufferData(
-      gl.ARRAY_BUFFER,
-      new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1]),
-      gl.STATIC_DRAW,
-    );
+    gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
+    gl.disable(gl.DEPTH_TEST);
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+
+    const startedAt = performance.now();
+    let frame = 0;
 
     const resize = () => {
       const rect = canvas.getBoundingClientRect();
@@ -93,21 +138,25 @@ export function ShaderTile({
       }
 
       gl.viewport(0, 0, width, height);
-      return { height, width };
+      return scale;
     };
 
     const render = () => {
-      const { height, width } = resize();
+      const pixelScale = resize();
       const time = (performance.now() - startedAt) / 1000;
+      const reveal = Math.min(1, 0.1 + time * 0.22);
+      const visible = Math.max(256, Math.floor(PARTICLE_COUNT * reveal));
 
+      gl.clearColor(0.006, 0.004, 0.003, 1);
+      gl.clear(gl.COLOR_BUFFER_BIT);
       gl.useProgram(program);
       gl.enableVertexAttribArray(positionLocation);
       gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-      gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
-      gl.uniform2f(resolutionLocation, width, height);
+      gl.vertexAttribPointer(positionLocation, 3, gl.FLOAT, false, 0, 0);
+      gl.uniform1f(pointSizeLocation, 1.35 * pixelScale);
       gl.uniform1f(seedLocation, iteration.id);
       gl.uniform1f(timeLocation, time);
-      gl.drawArrays(gl.TRIANGLES, 0, 6);
+      gl.drawArrays(gl.POINTS, 0, visible);
 
       frame = window.requestAnimationFrame(render);
     };
@@ -122,45 +171,4 @@ export function ShaderTile({
   }, [active, iteration.id]);
 
   return <canvas aria-hidden="true" className={`shader-tile ${className}`} ref={canvasRef} />;
-}
-
-function createProgram(
-  gl: WebGLRenderingContext,
-  vertexSource: string,
-  fragmentSource: string,
-) {
-  const vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexSource);
-  const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentSource);
-  if (!vertexShader || !fragmentShader) return null;
-
-  const program = gl.createProgram();
-  if (!program) return null;
-
-  gl.attachShader(program, vertexShader);
-  gl.attachShader(program, fragmentShader);
-  gl.linkProgram(program);
-  gl.deleteShader(vertexShader);
-  gl.deleteShader(fragmentShader);
-
-  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-    gl.deleteProgram(program);
-    return null;
-  }
-
-  return program;
-}
-
-function createShader(gl: WebGLRenderingContext, type: number, source: string) {
-  const shader = gl.createShader(type);
-  if (!shader) return null;
-
-  gl.shaderSource(shader, source);
-  gl.compileShader(shader);
-
-  if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-    gl.deleteShader(shader);
-    return null;
-  }
-
-  return shader;
 }

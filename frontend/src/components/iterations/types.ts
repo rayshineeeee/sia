@@ -2,9 +2,13 @@ export type Iteration = {
   id: number;
   label: string;
   number: string;
+  originalPrompt: string;
+  refinedPrompt: string;
   summary: string;
   title: string;
 };
+
+export type ExperienceVariant = "v1" | "v2" | "v3";
 
 export type ViewportState = {
   frameWidth: number;

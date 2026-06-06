@@ -1,5 +1,9 @@
+"use client";
+
+import { useState } from "react";
 import {
   motion,
+  useMotionValueEvent,
   useTransform,
   type MotionStyle,
   type MotionValue,
@@ -7,25 +11,36 @@ import {
 import { TOTAL_ITERATIONS } from "./data";
 import { IterationCardFields } from "./IterationCardFields";
 import { IterationVisual } from "./IterationVisual";
-import type { CarouselTuning, Iteration } from "./types";
+import { ShaderTile } from "./ShaderTile";
+import type { CarouselTuning, ExperienceVariant, Iteration } from "./types";
 
 export function IterationFrame({
   index,
   iteration,
   onSelect,
   progress,
+  selected,
   tuning,
+  variant = "v1",
 }: {
   index: number;
   iteration: Iteration;
   onSelect: (iteration: Iteration) => void;
   progress: MotionValue<number>;
+  selected: boolean;
   tuning: CarouselTuning;
+  variant?: ExperienceVariant;
 }) {
+  const [shaderActive, setShaderActive] = useState(index < 7);
   const relative = useTransform(
     progress,
     (latest) => index - latest * (TOTAL_ITERATIONS - 1),
   );
+  useMotionValueEvent(relative, "change", (value) => {
+    const nextActive = value > -2.2 && value < 7.4;
+    setShaderActive((current) => (current === nextActive ? current : nextActive));
+  });
+
   const x = useTransform(relative, (value) => {
     const position = clamp(value, -3, 7.8);
     return position * tuning.spacingX + Math.pow(position, 2) * tuning.curve;
@@ -62,17 +77,23 @@ export function IterationFrame({
     x,
     y,
     z,
-    zIndex,
+    zIndex: selected ? 2400 : zIndex,
   };
 
   return (
     <motion.div className="iteration-frame" style={frameStyle}>
       <button
+        aria-pressed={selected}
         className="iteration-surface"
+        data-selected={selected ? "true" : "false"}
         onClick={() => onSelect(iteration)}
         type="button"
       >
-        <IterationVisual iteration={iteration} />
+        {variant === "v2" ? (
+          <ShaderTile active={shaderActive} iteration={iteration} />
+        ) : (
+          <IterationVisual iteration={iteration} />
+        )}
         <IterationCardFields iteration={iteration} />
       </button>
     </motion.div>

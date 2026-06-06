@@ -1,4 +1,4 @@
-import type { CarouselTuning } from "./types";
+import type { CarouselTuning, ExperienceVariant } from "./types";
 
 export const defaultCarouselTuning: CarouselTuning = {
   arc: 10.6,
@@ -19,3 +19,14 @@ export const defaultCarouselTuning: CarouselTuning = {
   titleY: -32,
   trackTop: 20,
 };
+
+export const defaultV3CarouselTuning: CarouselTuning = {
+  ...defaultCarouselTuning,
+  shaderOpacity: 0.72,
+  shaderScale: 1.15,
+  shaderSpin: 28,
+};
+
+export function getDefaultCarouselTuning(variant: ExperienceVariant) {
+  return variant === "v3" ? defaultV3CarouselTuning : defaultCarouselTuning;
+}

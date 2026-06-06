@@ -2,10 +2,18 @@
 
 import { motion } from "framer-motion";
 import type { CSSProperties } from "react";
-import type { CarouselTuning } from "./types";
+import { ThomasAttractorPlane } from "./ThomasAttractorPlane";
+import type { CarouselTuning, ExperienceVariant } from "./types";
 
-export function StageBackdrop({ tuning }: { tuning: CarouselTuning }) {
+export function StageBackdrop({
+  tuning,
+  variant = "v1",
+}: {
+  tuning: CarouselTuning;
+  variant?: ExperienceVariant;
+}) {
   const shaderDuration = Math.max(4, tuning.shaderSpin);
+  const isThomasBackdrop = variant === "v3";
 
   return (
     <div className="stage-backdrop" aria-hidden="true">
@@ -23,21 +31,30 @@ export function StageBackdrop({ tuning }: { tuning: CarouselTuning }) {
       </div>
 
       <motion.div
-        animate={{ rotate: 360 }}
+        animate={isThomasBackdrop ? undefined : { rotate: 360 }}
         className="background-shader-plane"
         style={{
-          opacity: tuning.shaderOpacity,
+          opacity: isThomasBackdrop ? 1 : tuning.shaderOpacity,
           scale: tuning.shaderScale,
         }}
         transition={{
           duration: shaderDuration,
           ease: "linear",
-          repeat: Infinity,
+          repeat: isThomasBackdrop ? 0 : Infinity,
         }}
       >
-        <span />
-        <span />
-        <span />
+        {isThomasBackdrop ? (
+          <ThomasAttractorPlane
+            opacity={tuning.shaderOpacity}
+            spin={tuning.shaderSpin}
+          />
+        ) : (
+          <>
+            <span />
+            <span />
+            <span />
+          </>
+        )}
       </motion.div>
     </div>
   );

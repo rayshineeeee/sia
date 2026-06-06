@@ -1,15 +1,21 @@
+"use client";
+
 import { useEffect, useMemo, useState } from "react";
 import { X } from "lucide-react";
 import { getComparisonPeer, getIteration, iterations } from "./data";
 import { IterationCardFields } from "./IterationCardFields";
 import { IterationVisual } from "./IterationVisual";
+import { ShaderTile } from "./ShaderTile";
+import type { ExperienceVariant } from "./types";
 
 export function IterationDetailOverlay({
   baseId,
   onClose,
+  variant = "v1",
 }: {
   baseId: number;
   onClose: () => void;
+  variant?: ExperienceVariant;
 }) {
   const [selectedId, setSelectedId] = useState(baseId);
   const [considerId, setConsiderId] = useState(getComparisonPeer(baseId));
@@ -47,10 +53,25 @@ export function IterationDetailOverlay({
 
       <div className="detail-stage">
         <article className="detail-panel">
-          <IterationVisual iteration={selectedIteration} large />
+          {variant === "v2" ? (
+            <ShaderTile active iteration={selectedIteration} />
+          ) : (
+            <IterationVisual iteration={selectedIteration} large />
+          )}
           <IterationCardFields iteration={selectedIteration} />
         </article>
       </div>
+
+      <section className="detail-prompts" aria-label="Prompt history">
+        <article className="detail-prompt">
+          <h2>Original Prompt</h2>
+          <p>{selectedIteration.originalPrompt}</p>
+        </article>
+        <article className="detail-prompt">
+          <h2>Refined Prompt</h2>
+          <p>{selectedIteration.refinedPrompt}</p>
+        </article>
+      </section>
 
       <footer className="detail-controls">
         <label className="detail-range">

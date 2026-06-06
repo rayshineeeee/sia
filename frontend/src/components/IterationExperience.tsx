@@ -1,6 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type PointerEvent,
+} from "react";
 import { motion } from "framer-motion";
 import { IterationDetailOverlay } from "@/components/iterations/IterationDetailOverlay";
 import { IterationTrack } from "@/components/iterations/IterationTrack";
@@ -8,25 +15,57 @@ import { StageBackdrop } from "@/components/iterations/StageBackdrop";
 import { StageHeader } from "@/components/iterations/StageHeader";
 import { TuningGate } from "@/components/iterations/TuningGate";
 import { getIteration } from "@/components/iterations/data";
-import { defaultCarouselTuning } from "@/components/iterations/tuning";
+import { getDefaultCarouselTuning } from "@/components/iterations/tuning";
 import { useIterationScroll } from "@/components/iterations/useIterationScroll";
-import type { Iteration } from "@/components/iterations/types";
+import type { ExperienceVariant, Iteration } from "@/components/iterations/types";
 
-export function IterationExperience() {
+export function IterationExperience({
+  variant = "v1",
+}: {
+  variant?: ExperienceVariant;
+}) {
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailBaseId, setDetailBaseId] = useState(1);
+  const [selectedIterationId, setSelectedIterationId] = useState<number | null>(null);
   const [tuningOpen, setTuningOpen] = useState(false);
-  const [tuning, setTuning] = useState(defaultCarouselTuning);
+  const baseTuning = getDefaultCarouselTuning(variant);
+  const [tuning, setTuning] = useState(() => baseTuning);
   const experienceRef = useRef<HTMLElement>(null);
   const { activeId, progress, progressScale, sceneRef } = useIterationScroll();
 
   const activeIteration = getIteration(activeId);
-  const resolvedTuning = { ...defaultCarouselTuning, ...tuning };
+  const resolvedTuning = { ...baseTuning, ...tuning };
 
-  const openDetail = useCallback((iteration: Iteration) => {
-    setDetailBaseId(iteration.id);
-    setDetailOpen(true);
-  }, []);
+  const handleIterationPress = useCallback(
+    (iteration: Iteration) => {
+      if (selectedIterationId === iteration.id) {
+        setDetailBaseId(iteration.id);
+        setDetailOpen(true);
+        return;
+      }
+
+      setSelectedIterationId(iteration.id);
+    },
+    [selectedIterationId],
+  );
+
+  const handleExperiencePointerDown = useCallback(
+    (event: PointerEvent<HTMLElement>) => {
+      if (!selectedIterationId || detailOpen) return;
+
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+
+      const interactiveTarget = target.closest(
+        ".iteration-surface, .tuning-trigger, .tuning-controls, .detail-overlay",
+      );
+
+      if (!interactiveTarget) {
+        setSelectedIterationId(null);
+      }
+    },
+    [detailOpen, selectedIterationId],
+  );
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
@@ -38,7 +77,8 @@ export function IterationExperience() {
 
   return (
     <main
-      className="experience"
+      className={`experience experience-${variant}`}
+      onPointerDownCapture={handleExperiencePointerDown}
       ref={experienceRef}
       style={
         {
@@ -64,12 +104,14 @@ export function IterationExperience() {
           <StageHeader activeIteration={activeIteration} />
 
           <div className="stage-plane" aria-hidden="true" />
-          <StageBackdrop tuning={resolvedTuning} />
+          <StageBackdrop tuning={resolvedTuning} variant={variant} />
 
           <IterationTrack
-            onSelect={openDetail}
+            onSelect={handleIterationPress}
             progress={progress}
+            selectedId={selectedIterationId}
             tuning={resolvedTuning}
+            variant={variant}
           />
 
           <div className="progress-rail" aria-hidden="true">
@@ -89,6 +131,7 @@ export function IterationExperience() {
           baseId={detailBaseId}
           key={detailBaseId}
           onClose={() => setDetailOpen(false)}
+          variant={variant}
         />
       ) : null}
     </main>
