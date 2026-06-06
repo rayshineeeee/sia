@@ -1,7 +1,7 @@
 {
   "profile_id": "default-target",
   "name": "Default target agent (Claude Haiku)",
-  "backend": "codegen",
   "model": "claude-haiku-4-5-20251001",
-  "provider_id": "anthropic"
+  "provider_id": "anthropic",
+  "agent_reference": "default"
 }

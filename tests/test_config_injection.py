@@ -44,7 +44,7 @@ def test_run_evaluation_honors_injected_timeout(mock_run, tmp_path):
 
 def test_context_manager_stores_injected_config(tmp_path):
     cfg = Config(AGENT_CODE_PREVIEW_LIMIT=7, CONTEXT_SUMMARY_MAX_TURNS=2)
-    cm = ContextManager(str(tmp_path), {"meta_model": "x", "backend": "claude"}, config=cfg)
+    cm = ContextManager(str(tmp_path), {"meta_model": "x", "agent_impl": "claude"}, config=cfg)
     assert cm.cfg.AGENT_CODE_PREVIEW_LIMIT == 7
     assert cm.cfg.CONTEXT_SUMMARY_MAX_TURNS == 2
 

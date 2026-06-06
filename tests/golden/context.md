@@ -3,7 +3,7 @@
 **Task**: /tasks/example
 **Meta Model**: haiku
 **Task Model**: claude-haiku-4-5-20251001
-**Backend**: claude
+**Agent impl**: claude
 **Started**: <TS>
 **Max Generations**: 2
 

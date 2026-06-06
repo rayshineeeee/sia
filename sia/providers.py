@@ -4,7 +4,7 @@ A ``Provider`` describes *how* to talk to a model provider: the SDK family
 (``client_kind``), an optional OpenAI-compatible ``base_url``, and the environment
 variable holding the API key. Providers are defined in JSON files (bundled under
 ``sia/defaults/providers/`` and user-extensible via ``$SIA_PROVIDERS_DIR`` or
-``./providers``) and referenced **by name** from an :class:`~sia.profiles.AgentProfile`.
+``./providers``) and referenced **by name** from an agent profile (see ``sia.profiles``).
 
 Adding a provider is dropping a JSON file — no code change.
 """

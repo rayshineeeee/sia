@@ -53,14 +53,14 @@ sia run --task gpqa --max_gen 5 --run_id 1
 ```
 
 With a meta agent on OpenHands + Gemini (author `./profiles/gemini-meta.json` with
-`"backend": "openhands"`, `"model": "gemini/gemini-3.1-pro-preview"`, `"provider_id": "gemini"`):
+`"agent_impl": "openhands"`, `"model": "gemini/gemini-3.1-pro-preview"`, `"provider_id": "gemini"`):
 
 ```bash
 sia run \
   --task_dir ./my-tasks/gpqa \
   --max_gen 5 \
   --run_id 1 \
-  --meta-profile gemini-meta
+  --meta-agent-profile gemini-meta
 ```
 
 See [configuration.md](configuration.md) for the full profile/provider schema and more examples.

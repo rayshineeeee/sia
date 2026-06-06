@@ -78,7 +78,7 @@ class RunSummary(BaseModel):
     task: str | None = None
     meta_model: str | None = None
     task_model: str | None = None
-    backend: str | None = None
+    agent_impl: str | None = None
     started: str | None = None
     max_generations: int | None = None
     num_generations: int = 0
@@ -109,7 +109,7 @@ class RunDetail(BaseModel):
     task: str | None = None
     meta_model: str | None = None
     task_model: str | None = None
-    backend: str | None = None
+    agent_impl: str | None = None
     started: str | None = None
     max_generations: int | None = None
     context_md: str | None = None
@@ -243,7 +243,7 @@ def _run_summary(run_dir: Path, index: int) -> RunSummary:
         task=meta.get("task"),
         meta_model=meta.get("meta model"),
         task_model=meta.get("task model"),
-        backend=meta.get("backend"),
+        agent_impl=meta.get("agent impl"),
         started=meta.get("started"),
         max_generations=_as_int(meta.get("max generations")),
         num_generations=len(gens),
@@ -275,7 +275,7 @@ def get_run(runs_root: Path, run_name: str) -> RunDetail | None:
         task=meta.get("task"),
         meta_model=meta.get("meta model"),
         task_model=meta.get("task model"),
-        backend=meta.get("backend"),
+        agent_impl=meta.get("agent impl"),
         started=meta.get("started"),
         max_generations=_as_int(meta.get("max generations")),
         context_md=context_md,

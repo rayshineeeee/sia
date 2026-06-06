@@ -44,9 +44,9 @@ SIA ships with four built-in tasks: `gpqa`, `lawbench`, `longcot-chess`, `spaces
 
 ### Install
 
-Pick the Agent backend that matches the LLMs you want to run.
+Pick the agent impl that matches the LLMs you want to run.
 
-**Claude backend** (Claude Agent SDK, Claude models only):
+**Claude agent impl** (Claude Agent SDK, Claude models only):
 
 ```bash
 python3 -m venv .venv && source .venv/bin/activate
@@ -54,7 +54,7 @@ pip install 'sia-agent[claude]'
 export ANTHROPIC_API_KEY="..."
 ```
 
-**OpenHands backend** (multi-provider — Gemini, OpenAI, Anthropic, etc.):
+**OpenHands agent impl** (multi-provider — Gemini, OpenAI, Anthropic, etc.):
 
 ```bash
 python3 -m venv .venv && source .venv/bin/activate
@@ -96,20 +96,20 @@ While a run is in progress a **live dashboard** auto-starts at
 | `--task_dir` | — | Path to an external task directory |
 | `--max_gen` | 3 | Number of self-improvement generations |
 | `--run_id` | 1 | Unique run identifier |
-| `--meta-profile` | `default-meta` | Profile for the meta/feedback agent (name or path to a `.json`) |
-| `--target-profile` | `default-target` | Profile for the target agent (name or path to a `.json`) |
+| `--meta-agent-profile` | `default-meta` | Profile for the meta/feedback agent (name or path to a `.json`) |
+| `--target-agent-profile` | `default-target` | Profile for the target agent (name or path to a `.json`) |
 | `--no-web` | off | Don't auto-start the live dashboard during the run |
 | `--web-port` | 8000 | Port for the live dashboard (`--web-host` to change the bind host) |
 
-The model, backend, and provider for each agent come from a **profile** (see below). For example,
+The model, agent impl, and provider for each agent come from a **profile** (see below). For example,
 to evaluate Kimi-K2.6 on Nebius as the target model:
 
 ```bash
 export NEBIUS_API_KEY="..."        # + ANTHROPIC_API_KEY for the default meta agent
-sia run --task gpqa --target-profile kimi-nebius --max_gen 5 --run_id 2
+sia run --task gpqa --target-agent-profile kimi-nebius-target --max_gen 5 --run_id 2
 ```
 
-Full backend, model, and API-key reference: [docs/configuration.md](docs/configuration.md). Hit a snag? [docs/troubleshooting.md](docs/troubleshooting.md).
+Full agent-impl, model, and API-key reference: [docs/configuration.md](docs/configuration.md). Hit a snag? [docs/troubleshooting.md](docs/troubleshooting.md).
 
 ### Visualize runs
 
@@ -135,8 +135,9 @@ you can watch generations land live.
 
 ### Author your own profile
 
-A **provider** is an endpoint + credentials; a **profile** bundles `(backend, model, provider)` for
-one agent role. Both are JSON files — bundled defaults live in `sia/defaults/{providers,profiles}/`,
+A **provider** is an endpoint + credentials; a **profile** configures one agent role. A meta-agent
+profile bundles `(agent_impl, model, provider)`; a target-agent profile bundles `(model, provider,
+agent_reference)`. Both are JSON files — bundled defaults live in `sia/defaults/{providers,profiles}/`,
 and you can add your own under `./providers/` and `./profiles/` (or set `$SIA_PROVIDERS_DIR` /
 `$SIA_PROFILES_DIR`). No code change required.
 
@@ -156,25 +157,32 @@ mkdir -p providers profiles
 ```
 
 ```jsonc
-// profiles/my-target.json      — the target agent's model + provider
+// profiles/my-target.json      — the target agent's model + provider + reference
 {
   "profile_id": "my-target",
   "name": "My model on My Endpoint",
-  "backend": "codegen",                     // "codegen" = the generated target agent
   "model": "vendor/my-model",
-  "provider_id": "my-endpoint"              // references the provider above
+  "provider_id": "my-endpoint",             // references the provider above
+  "agent_reference": "default"              // "default" = the task package's reference;
+                                            // or { "source": "./my_agent_dir/", "entrypoint": "main.py" }
 }
 ```
 
 ```bash
 export MY_ENDPOINT_API_KEY="..."
-sia run --task gpqa --target-profile my-target      # by name (resolves ./profiles/my-target.json)
-sia run --task gpqa --target-profile ./profiles/my-target.json   # or by explicit path
+sia run --task gpqa --target-agent-profile my-target      # by name (resolves ./profiles/my-target.json)
+sia run --task gpqa --target-agent-profile ./profiles/my-target.json   # or by explicit path
 ```
 
-To run the **meta/feedback** agent elsewhere, give a profile a real backend (`openhands` or
-`pydantic-ai`) and pass it with `--meta-profile`. The `claude` backend is Anthropic-only.
-See [docs/configuration.md](docs/configuration.md) for the full schema and more examples.
+The `agent_reference` is the seed the meta-agent starts from and the feedback-agent improves:
+`"default"` uses the task package's bundled reference, or supply your own with
+`{ "source": "./my_agent.py" }` (a single file) or `{ "source": "./dir/", "entrypoint": "main.py" }`
+(a multi-file directory the agent reads with its tools). A `requirements.txt` inside a directory
+reference is installed per generation.
+
+To run the **meta/feedback** agent elsewhere, give a meta profile a different `agent_impl`
+(`openhands` or `pydantic-ai`) and pass it with `--meta-agent-profile`. The `claude` agent impl is
+Anthropic-only. See [docs/configuration.md](docs/configuration.md) for the full schema and more examples.
 
 ---
 
@@ -239,7 +247,7 @@ Full contract, return-format rules, and a complete example: [EVALUATION_GUIDE.md
 
 - [docs/architecture.md](docs/architecture.md) — directory layout, generation flow, prompt customization
 - [docs/walkthrough.md](docs/walkthrough.md) — detailed custom-task walkthrough
-- [docs/configuration.md](docs/configuration.md) — backends, models, API keys, CLI reference
+- [docs/configuration.md](docs/configuration.md) — agent impls, models, API keys, CLI reference
 - [EVALUATION_GUIDE.md](EVALUATION_GUIDE.md) — writing `evaluate.py` for a custom task
 - [docs/troubleshooting.md](docs/troubleshooting.md) — common errors and fixes
 

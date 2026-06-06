@@ -1,7 +1,7 @@
-"""PydanticAI backend for running meta/feedback agents.
+"""PydanticAI agent impl for running meta/feedback agents.
 
 Builds a PydanticAI Agent with bash + file tools and caps iterations via
-UsageLimits. The PydanticAI SDK is imported lazily so the backend can be listed in
+UsageLimits. The PydanticAI SDK is imported lazily so the impl can be listed in
 the registry even when the optional ``[pydantic-ai]`` extra isn't installed.
 
 The model spec is passed through to PydanticAI's native model parsing (e.g.
@@ -15,7 +15,7 @@ import os
 import subprocess
 from datetime import datetime
 
-from sia.backends.base import register
+from sia.agent_impls.base import register
 from sia.config import Config
 from sia.logging_setup import get_logger
 

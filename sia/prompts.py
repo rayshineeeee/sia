@@ -15,11 +15,33 @@ if TYPE_CHECKING:
     from sia.run_setup import TaskFiles
 
 
+def _reference_section(task_files: TaskFiles, reference_dir: str | None) -> str:
+    """The reference paragraph of the meta prompt.
+
+    Default/single-file: embed the seed code verbatim (byte-identical to the original).
+    Multi-file directory: point the agent at the on-disk reference and tell it to read
+    the files itself and declare any extra deps in requirements.txt.
+    """
+    if reference_dir is None:
+        return (
+            "Here is a sample target_agent.py showing the complete implementation pattern "
+            f"(READ THE ENTIRE FILE):\n{task_files.reference_target_agent_py}"
+        )
+    return (
+        f"Your reference agent implementation has been placed in your working directory ({reference_dir}). "
+        "It may span multiple files. READ IT YOURSELF with your file tools (Read/Glob/Grep) — study the "
+        "entrypoint and any helper modules — then write your target_agent.py in the same directory.\n"
+        "If your target_agent.py needs third-party packages, list them (one per line) in a requirements.txt "
+        "in your working directory; they are installed before the target agent runs."
+    )
+
+
 def build_meta_prompt(
     task_files: TaskFiles,
     task_model: str,
     working_dir: str,
     provider: Provider | None = None,
+    reference_dir: str | None = None,
 ) -> str:
     """Build the meta-agent prompt for creating the initial target agent.
 
@@ -27,7 +49,13 @@ def build_meta_prompt(
     byte-identical to the original. For OpenAI-compatible providers a client-setup
     block is prepended instructing the meta-agent to refactor the reference agent to
     the ``openai`` SDK at the provider's base_url/api_key_env.
+
+    ``reference_dir`` is set only for a multi-file directory reference: instead of
+    embedding the seed code, the prompt points the agent at the on-disk reference so it
+    reads the files with its own tools. ``None`` (default/single-file) keeps the
+    historical embedded-seed text verbatim.
     """
+    reference_section = _reference_section(task_files, reference_dir)
     base = f"""You are a meta-agent. Your task is to create a target agent which can execute a task. Go ahead and create a target_agent.py for the target agent, which in turn can solve the given task.
 
 Here is the FULL TASK SPECIFICATION that your target_agent.py will need to solve:
@@ -36,8 +64,7 @@ Here is the FULL TASK SPECIFICATION that your target_agent.py will need to solve
 Here are a couple of sample task descriptions which the target agent has to solve:
 {task_files.sample_task_descriptions}
 
-Here is a sample target_agent.py showing the complete implementation pattern (READ THE ENTIRE FILE):
-{task_files.reference_target_agent_py}
+{reference_section}
 
 Here is a sample agent execution trajectory:
 {json.dumps(task_files.sample_agent_execution, indent=2)}
@@ -142,8 +169,14 @@ def build_feedback_prompt(
     previous_gens: str,
     task_model: str,
     provider: Provider | None = None,
+    requirements_dir: str | None = None,
 ) -> str:
-    """Build the feedback agent prompt for improving the target agent."""
+    """Build the feedback agent prompt for improving the target agent.
+
+    ``requirements_dir`` is set when the reference declares dependencies (a directory
+    reference, or a default/file reference shipping a requirements.txt): the agent is
+    told it may add/edit a requirements.txt there. ``None`` keeps the historical text.
+    """
     context_md_path = os.path.join(run_dir, "context.md")
 
     base = f"""You are an expert AI Engineer analyzing agent scaffolds for iterative improvement.
@@ -234,6 +267,12 @@ Follow these steps:
 
 NOTE: The agent execution log may be incomplete or contain errors if the target agent crashed. If you see an "error" field, focus on making the agent more robust to prevent such failures.
 """
+    if requirements_dir is not None:
+        base += (
+            f"\nNOTE ON DEPENDENCIES: You may also create or edit a requirements.txt in {requirements_dir} "
+            "(one package per line) to declare third-party packages your target_agent.py needs; they are "
+            'installed before the target agent runs. This is the one exception to the "only two files" rule above.\n'
+        )
     if provider is None or provider.client_kind != "openai":
         return base
     return build_target_client_setup(provider, task_model) + base

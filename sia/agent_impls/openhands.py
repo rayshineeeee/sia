@@ -1,12 +1,12 @@
-"""OpenHands SDK backend."""
+"""OpenHands SDK agent impl."""
 
 from __future__ import annotations
 
 import os
 from datetime import datetime
 
+from sia.agent_impls.base import register
 from sia.api_keys import resolve_api_key
-from sia.backends.base import register
 from sia.logging_setup import get_logger
 
 logger = get_logger(__name__)

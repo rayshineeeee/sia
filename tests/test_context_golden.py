@@ -43,7 +43,7 @@ def test_context_md_golden(_mock_llm, tmp_path):
             "task_dir": "/tasks/example",
             "meta_model": "haiku",
             "task_model": "claude-haiku-4-5-20251001",
-            "backend": "claude",
+            "agent_impl": "claude",
             "max_gen": 2,
         },
     )

@@ -12,9 +12,9 @@ from sia.orchestrator import (
     _run_target_agent,
     run_generation,
 )
-from sia.profiles import load_profile
+from sia.profiles import load_meta_agent_profile
 
-DEFAULT_META_PROFILE = load_profile("default-meta")
+DEFAULT_META_PROFILE = load_meta_agent_profile("default-meta")
 
 
 def _make_task_files(tmp_path):
@@ -47,7 +47,7 @@ def _make_run_setup(tmp_path, task_dir):
             "task_dir": str(task_dir),
             "meta_model": "haiku",
             "task_model": "haiku",
-            "backend": "claude",
+            "agent_impl": "claude",
             "max_gen": 1,
         },
     )

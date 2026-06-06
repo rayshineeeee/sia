@@ -53,15 +53,16 @@ from datetime import datetime
 from pathlib import Path
 
 from sia import __version__, cli
+from sia.agent_reference import ResolvedAgentReference, copy_reference_into, resolve_agent_reference
 from sia.config import Config
 from sia.io_utils import file_size_ok, write_text
 from sia.layout import BUNDLED_TASKS, Names, RunLayout, TaskLayout, resolve_task_dir, venv_python_path
 from sia.logging_setup import configure_logging, get_logger
-from sia.profiles import AgentProfile, load_profile
+from sia.profiles import MetaAgentProfile, load_meta_agent_profile, load_target_agent_profile
 from sia.prompts import build_feedback_prompt, build_meta_prompt
 from sia.providers import Provider
 from sia.results import FeedbackContext, TargetAgentResult
-from sia.run_setup import RunSetup, TaskFiles, load_task_files, setup_run_directory
+from sia.run_setup import RunSetup, TaskFiles, install_requirements, load_task_files, setup_run_directory
 from sia.util import run_agent
 
 __all__ = [
@@ -543,11 +544,12 @@ def _run_feedback_agent(
     task_files: TaskFiles,
     execution_status: str,
     execution_section: str,
-    meta_profile: AgentProfile,
+    meta_profile: MetaAgentProfile,
     env_config: Config,
     dataset_dir: str,
     task_model: str,
     target_provider: Provider,
+    resolved_ref: ResolvedAgentReference | None = None,
 ) -> None:
     """Run the feedback agent to create an improved target agent."""
     agent_py = Path(os.path.join(run_dir, f"gen_{current_gen}"), Names.TARGET_AGENT).read_text(encoding="utf-8")
@@ -555,6 +557,10 @@ def _run_feedback_agent(
 
     previous_gens_list = list(range(1, current_gen)) if current_gen > 1 else []
     previous_gens_text = ", ".join(map(str, previous_gens_list)) if previous_gens_list else "None"
+
+    # Tell the feedback agent it may evolve dependencies whenever the reference uses a
+    # requirements.txt (a directory reference, or a default/file reference shipping one).
+    requirements_dir = next_gen_dir if (resolved_ref and resolved_ref.requirements) else None
 
     feedback_agent_prompt = build_feedback_prompt(
         current_gen=current_gen,
@@ -569,9 +575,15 @@ def _run_feedback_agent(
         previous_gens=previous_gens_text,
         task_model=task_model,
         provider=target_provider,
+        requirements_dir=requirements_dir,
     )
 
     os.makedirs(next_gen_dir, exist_ok=True)
+
+    # Carry the reference's helper files + requirements.txt into the next generation so
+    # the improved target_agent.py can import them and declared deps get installed.
+    if resolved_ref is not None:
+        copy_reference_into(resolved_ref, next_gen_dir)
 
     feedback_prompt_path = os.path.join(next_gen_dir, Names.FEEDBACK_PROMPT)
     write_text(feedback_prompt_path, feedback_agent_prompt)
@@ -583,7 +595,7 @@ def _run_feedback_agent(
             max_turns=str(env_config.DEFAULT_MAX_TURNS),
             prompt=feedback_agent_prompt,
             agent_working_directory=next_gen_dir,
-            backend=meta_profile.backend,
+            agent_impl=meta_profile.agent_impl,
             provider=meta_profile.provider,
         )
     )
@@ -599,11 +611,12 @@ def run_generation(
     task_files: TaskFiles,
     abs_dataset_dir: str,
     dataset_dir: str,
-    meta_profile: AgentProfile,
+    meta_profile: MetaAgentProfile,
     sandbox: str,
     env_config: Config,
     task_model: str,
     target_provider: Provider,
+    resolved_ref: ResolvedAgentReference | None = None,
 ) -> None:
     """Execute one generation: run target agent, evaluate, optionally run feedback agent."""
     run_dir = run_setup.run_directory
@@ -615,6 +628,12 @@ def run_generation(
     logger.info(f"Running target agent: {target_agent_path}")
     logger.info(f"  → Stdout log: {stdout_log_file}")
     logger.info("=" * 60)
+
+    # Install this generation's declared dependencies (if the agent wrote a
+    # requirements.txt) before running the target agent.
+    gen_requirements = os.path.join(gen_dir, Names.REQUIREMENTS_TXT)
+    if os.path.isfile(gen_requirements):
+        install_requirements(run_setup.venv_dir, gen_requirements)
 
     generation_start_time = time.time()
 
@@ -688,6 +707,7 @@ def run_generation(
             dataset_dir=dataset_dir,
             task_model=task_model,
             target_provider=target_provider,
+            resolved_ref=resolved_ref,
         )
     else:
         logger.info(f"Generation {current_gen} is the final generation. Skipping feedback agent.")
@@ -728,25 +748,30 @@ def main():
     task_dir, shared_dir = resolve_task_dir(args.task, args.task_dir)
     run_id = args.run_id
 
-    # Resolve agent profiles (each bundles backend + model + provider).
-    meta_profile = load_profile(args.meta_profile)
-    target_profile = load_profile(args.target_profile)
+    # Resolve agent profiles: the meta profile bundles agent_impl + model + provider;
+    # the target profile bundles model + provider + agent_reference (the seed code).
+    meta_profile = load_meta_agent_profile(args.meta_agent_profile)
+    target_profile = load_target_agent_profile(args.target_agent_profile)
     meta_model = meta_profile.model
     task_model = target_profile.model
-    backend = meta_profile.backend
+    agent_impl = meta_profile.agent_impl
     target_provider = target_profile.provider
+
+    task_layout = TaskLayout(task_dir, shared_dir)
+    resolved_ref = resolve_agent_reference(target_profile.agent_reference, task_layout)
 
     logger.info("Configuration:")
     logger.info(f"  - Maximum generations: {max_gen}")
     logger.info(f"  - Task directory: {task_dir}")
     logger.info(f"  - Run ID: {run_id}")
     logger.info(
-        f"  - Meta profile: {meta_profile.profile_id} (backend={backend}, model={meta_model}, "
+        f"  - Meta agent profile: {meta_profile.profile_id} (agent_impl={agent_impl}, model={meta_model}, "
         f"provider={meta_profile.provider.provider_id})"
     )
     logger.info(
-        f"  - Target profile: {target_profile.profile_id} (model={task_model}, "
-        f"provider={target_provider.provider_id}/{target_provider.client_kind})"
+        f"  - Target agent profile: {target_profile.profile_id} (model={task_model}, "
+        f"provider={target_provider.provider_id}/{target_provider.client_kind}, "
+        f"reference={target_profile.agent_reference.kind})"
     )
 
     for label, prov in (("meta", meta_profile.provider), ("target", target_provider)):
@@ -757,20 +782,29 @@ def main():
     # SECTION 1: Load Files from Task Directory
     # ========================
 
-    task_files = load_task_files(task_dir, shared_dir)
+    task_files = load_task_files(task_dir, shared_dir, resolved_ref)
 
     # ========================
     # SECTION 2: Setup Run Directories
     # ========================
 
-    run_setup = setup_run_directory(run_id, task_dir, meta_model, task_model, backend, max_gen, config=env_config)
+    run_setup = setup_run_directory(run_id, task_dir, meta_model, task_model, agent_impl, max_gen, config=env_config)
 
     # ========================
     # SECTION 3: Build Initial Prompt
     # ========================
 
+    # A multi-file directory reference is read by the agent from disk (copied into its
+    # working dir) rather than embedded in the prompt.
+    copy_reference_into(resolved_ref, run_setup.meta_agent_working_directory)
+    reference_dir = run_setup.meta_agent_working_directory if resolved_ref.ref_dir is not None else None
+
     meta_agent_prompt = build_meta_prompt(
-        task_files, task_model, run_setup.meta_agent_working_directory, provider=target_provider
+        task_files,
+        task_model,
+        run_setup.meta_agent_working_directory,
+        provider=target_provider,
+        reference_dir=reference_dir,
     )
 
     # ========================
@@ -788,7 +822,7 @@ def main():
             max_turns=str(env_config.DEFAULT_MAX_TURNS),
             prompt=meta_agent_prompt,
             agent_working_directory=run_setup.meta_agent_working_directory,
-            backend=backend,
+            agent_impl=agent_impl,
             provider=meta_profile.provider,
         )
     )
@@ -797,7 +831,6 @@ def main():
     # SECTION 5: Main Loop - Run Target Agent and Feedback Agent
     # ========================
 
-    task_layout = TaskLayout(task_dir, shared_dir)
     dataset_directory = task_layout.dataset_dir
     abs_dataset_directory = task_layout.abs_dataset_dir
     logger.info(f"Dataset directory: {abs_dataset_directory}")
@@ -819,6 +852,7 @@ def main():
             env_config=env_config,
             task_model=task_model,
             target_provider=target_provider,
+            resolved_ref=resolved_ref,
         )
 
     # Finalize context with summary statistics

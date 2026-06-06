@@ -1,9 +1,9 @@
 """Backward-compatible shim.
 
-Agent backends moved to the ``sia.backends`` package. This module is kept so
+Agent impls moved to the ``sia.agent_impls`` package. This module is kept so
 existing imports (``from sia.util import run_agent``) continue to work.
 """
 
-from sia.backends import available_backends, get_backend, run_agent
+from sia.agent_impls import available_agent_impls, get_agent_impl, run_agent
 
-__all__ = ["available_backends", "get_backend", "run_agent"]
+__all__ = ["available_agent_impls", "get_agent_impl", "run_agent"]

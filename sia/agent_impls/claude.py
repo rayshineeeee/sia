@@ -1,10 +1,10 @@
-"""Claude Code SDK backend."""
+"""Claude Code SDK agent impl."""
 
 from __future__ import annotations
 
 from datetime import datetime
 
-from sia.backends.base import register
+from sia.agent_impls.base import register
 from sia.logging_setup import get_logger
 
 logger = get_logger(__name__)
@@ -13,7 +13,7 @@ logger = get_logger(__name__)
 async def run_agent_claude(model_name, max_turns, prompt, agent_working_directory, provider=None):
     """Run agent using Claude Code SDK
 
-    The ``provider`` argument is accepted for a uniform backend signature but ignored:
+    The ``provider`` argument is accepted for a uniform agent-impl signature but ignored:
     the Claude Code SDK authenticates against Anthropic natively (ANTHROPIC_API_KEY).
 
     Note: Claude Code automatically saves trajectories to ~/.claude/projects/

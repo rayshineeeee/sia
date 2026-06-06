@@ -26,7 +26,7 @@ def context_mgr(run_dir):
         "task_dir": "./tasks/test-task",
         "meta_model": "haiku",
         "task_model": "haiku",
-        "backend": "claude",
+        "agent_impl": "claude",
         "max_gen": 3,
     }
     mgr = ContextManager(str(run_dir), config)

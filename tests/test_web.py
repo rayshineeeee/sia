@@ -22,7 +22,7 @@ def runs_root(tmp_path: Path) -> Path:
         "**Task**: /tasks/gpqa\n"
         "**Meta Model**: kimi\n"
         "**Task Model**: haiku\n"
-        "**Backend**: openhands\n"
+        "**Agent impl**: openhands\n"
         "**Started**: 2026-06-05 13:31:32\n"
         "**Max Generations**: 3\n\n"
         "---\n\n## Generation 1\n**Status**: ok\n",
@@ -69,7 +69,7 @@ def test_list_runs_summary(runs_root):
     assert len(runs) == 1
     r = runs[0]
     assert r.name == "run_7"
-    assert r.backend == "openhands"
+    assert r.agent_impl == "openhands"
     assert r.task_model == "haiku"
     assert r.max_generations == 3
     assert r.num_generations == 2
@@ -126,7 +126,7 @@ def test_api_endpoints(runs_root):
     client = TestClient(create_app(runs_root))
 
     assert client.get("/api/runs").json()[0]["name"] == "run_7"
-    assert client.get("/api/runs/run_7").json()["backend"] == "openhands"
+    assert client.get("/api/runs/run_7").json()["agent_impl"] == "openhands"
     assert len(client.get("/api/runs/run_7/gens/gen_1/eval").json()) == 4
     assert "hello" in client.get("/api/runs/run_7/gens/gen_1/artifact/target_agent").text
     assert client.get("/api/runs/run_7/gens/gen_1/trajectory/1").json()[0]["role"] == "system"

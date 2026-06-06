@@ -33,7 +33,7 @@ class ContextManager:
                 - task_dir: Task directory path
                 - meta_model: Meta-agent model name
                 - task_model: Task-agent model name
-                - backend: Backend type ('claude' or 'openhands')
+                - agent_impl: Agent impl for the meta/feedback agent ('claude' / 'openhands' / ...)
                 - max_gen: Maximum number of generations
             config: Optional Config instance for tunables (defaults to Config()).
         """
@@ -43,7 +43,7 @@ class ContextManager:
         self.cfg = config or Config()
         self.generations = []
         self.meta_model = run_config.get("meta_model", self.cfg.DEFAULT_CLAUDE_META_MODEL)
-        self.backend = run_config.get("backend", self.cfg.DEFAULT_BACKEND)
+        self.agent_impl = run_config.get("agent_impl", self.cfg.DEFAULT_AGENT_IMPL)
 
     def initialize(self):
         """Create context.md with header information"""
@@ -52,7 +52,7 @@ class ContextManager:
 **Task**: {self.config.get("task_dir", "N/A")}
 **Meta Model**: {self.config.get("meta_model", "N/A")}
 **Task Model**: {self.config.get("task_model", "N/A")}
-**Backend**: {self.config.get("backend", "N/A")}
+**Agent impl**: {self.config.get("agent_impl", "N/A")}
 **Started**: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
 **Max Generations**: {self.config.get("max_gen", "N/A")}
 
@@ -157,7 +157,7 @@ class ContextManager:
                         max_turns=str(self.cfg.CONTEXT_SUMMARY_MAX_TURNS),
                         prompt=file_prompt,
                         agent_working_directory=temp_dir,
-                        backend=self.backend,
+                        agent_impl=self.agent_impl,
                     )
 
                     # Read the summary from file

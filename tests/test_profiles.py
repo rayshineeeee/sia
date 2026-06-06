@@ -4,32 +4,39 @@ import json
 
 import pytest
 
-from sia.profiles import CODEGEN_BACKEND, AgentProfile, available_profiles, load_profile
+from sia.profiles import (
+    MetaAgentProfile,
+    TargetAgentProfile,
+    available_profiles,
+    load_meta_agent_profile,
+    load_target_agent_profile,
+)
 
 
 def test_bundled_profiles_present():
-    assert set(available_profiles()) >= {"default-meta", "default-target", "kimi-nebius"}
+    assert set(available_profiles()) >= {"default-meta", "default-target", "kimi-nebius-target"}
 
 
 def test_default_meta_profile():
-    p = load_profile("default-meta")
-    assert isinstance(p, AgentProfile)
+    p = load_meta_agent_profile("default-meta")
+    assert isinstance(p, MetaAgentProfile)
     assert p.profile_id == "default-meta"
-    assert p.backend == "claude"
+    assert p.agent_impl == "claude"
     assert p.model == "haiku"
     assert p.provider.provider_id == "anthropic"
 
 
-def test_default_target_profile_is_codegen():
-    p = load_profile("default-target")
-    assert p.backend == CODEGEN_BACKEND
+def test_default_target_profile_uses_default_reference():
+    p = load_target_agent_profile("default-target")
+    assert isinstance(p, TargetAgentProfile)
+    assert p.agent_reference.kind == "default"
     assert p.model == "claude-haiku-4-5-20251001"
     assert p.provider.client_kind == "anthropic"
 
 
-def test_kimi_nebius_profile_resolves_provider():
-    p = load_profile("kimi-nebius")
-    assert p.backend == CODEGEN_BACKEND
+def test_kimi_nebius_target_profile_resolves_provider():
+    p = load_target_agent_profile("kimi-nebius-target")
+    assert p.agent_reference.kind == "default"
     assert p.model == "moonshotai/Kimi-K2.6"
     assert p.provider.provider_id == "nebius"
     assert p.provider.base_url.endswith("nebius.com/v1/")
@@ -37,7 +44,7 @@ def test_kimi_nebius_profile_resolves_provider():
 
 def test_unknown_profile_raises():
     with pytest.raises(SystemExit):
-        load_profile("nope")
+        load_meta_agent_profile("nope")
 
 
 def _write_profile(tmp_path, data):
@@ -46,26 +53,49 @@ def _write_profile(tmp_path, data):
     return str(path)
 
 
-def test_invalid_backend_raises(tmp_path):
+def test_invalid_agent_impl_raises(tmp_path):
     path = _write_profile(
-        tmp_path, {"profile_id": "p", "name": "p", "backend": "bogus", "model": "m", "provider_id": "anthropic"}
+        tmp_path, {"profile_id": "p", "name": "p", "agent_impl": "bogus", "model": "m", "provider_id": "anthropic"}
     )
     with pytest.raises(SystemExit):
-        load_profile(path)
+        load_meta_agent_profile(path)
 
 
-def test_claude_backend_requires_anthropic_provider(tmp_path):
+def test_claude_agent_impl_requires_anthropic_provider(tmp_path):
     path = _write_profile(
-        tmp_path, {"profile_id": "p", "name": "p", "backend": "claude", "model": "m", "provider_id": "nebius"}
+        tmp_path, {"profile_id": "p", "name": "p", "agent_impl": "claude", "model": "m", "provider_id": "nebius"}
     )
     with pytest.raises(SystemExit):
-        load_profile(path)
+        load_meta_agent_profile(path)
 
 
-def test_openhands_backend_allows_non_anthropic_provider(tmp_path):
+def test_openhands_agent_impl_allows_non_anthropic_provider(tmp_path):
     path = _write_profile(
-        tmp_path, {"profile_id": "p", "name": "p", "backend": "openhands", "model": "m", "provider_id": "nebius"}
+        tmp_path, {"profile_id": "p", "name": "p", "agent_impl": "openhands", "model": "m", "provider_id": "nebius"}
     )
-    profile = load_profile(path)
-    assert profile.backend == "openhands"
+    profile = load_meta_agent_profile(path)
+    assert profile.agent_impl == "openhands"
     assert profile.provider.provider_id == "nebius"
+
+
+def test_target_profile_defaults_reference_when_omitted(tmp_path):
+    path = _write_profile(tmp_path, {"profile_id": "p", "name": "p", "model": "m", "provider_id": "anthropic"})
+    profile = load_target_agent_profile(path)
+    assert profile.agent_reference.kind == "default"
+
+
+def test_target_profile_file_reference(tmp_path):
+    (tmp_path / "my_agent.py").write_text("print('hi')")
+    path = _write_profile(
+        tmp_path,
+        {
+            "profile_id": "p",
+            "name": "p",
+            "model": "m",
+            "provider_id": "anthropic",
+            "agent_reference": {"source": "./my_agent.py"},
+        },
+    )
+    profile = load_target_agent_profile(path)
+    assert profile.agent_reference.kind == "file"
+    assert profile.agent_reference.source.name == "my_agent.py"

@@ -12,8 +12,9 @@ Sub-commands:
     sia web [flags]   Serve the runs visualizer over HTTP.
 
 Agent configuration is selected via JSON *profiles* (see sia/profiles.py): the
-meta/feedback agent via ``--meta-profile`` and the target agent via ``--target-profile``.
-Each value is a bundled/user profile name or a path to a ``.json`` file.
+meta/feedback agent via ``--meta-agent-profile`` and the target agent via
+``--target-agent-profile``. Each value is a bundled/user profile name or a path to a
+``.json`` file.
 """
 
 from __future__ import annotations
@@ -51,25 +52,25 @@ def _add_run_args(parser: argparse.ArgumentParser, env_config: Config) -> None:
         help="Path to an external task directory (e.g., ./tasks/my-task)",
     )
     parser.add_argument(
-        "--meta-profile",
-        dest="meta_profile",
+        "--meta-agent-profile",
+        dest="meta_agent_profile",
         type=str,
-        default=env_config.DEFAULT_META_PROFILE,
+        default=env_config.DEFAULT_META_AGENT_PROFILE,
         help=(
             "Agent profile for the meta/feedback agent: a bundled/user profile name or a path "
-            f"to a .json file (default: {env_config.DEFAULT_META_PROFILE}). A profile bundles "
-            "backend + model + provider."
+            f"to a .json file (default: {env_config.DEFAULT_META_AGENT_PROFILE}). A profile bundles "
+            "agent_impl + model + provider."
         ),
     )
     parser.add_argument(
-        "--target-profile",
-        dest="target_profile",
+        "--target-agent-profile",
+        dest="target_agent_profile",
         type=str,
-        default=env_config.DEFAULT_TARGET_PROFILE,
+        default=env_config.DEFAULT_TARGET_AGENT_PROFILE,
         help=(
             "Agent profile for the target agent: a bundled/user profile name or a path to a "
-            f".json file (default: {env_config.DEFAULT_TARGET_PROFILE}). The model + provider "
-            "the generated target_agent.py will call."
+            f".json file (default: {env_config.DEFAULT_TARGET_AGENT_PROFILE}). The model + provider "
+            "the generated target_agent.py will call, plus its agent_reference (seed code)."
         ),
     )
     parser.add_argument(

@@ -20,7 +20,7 @@ def test_run_help_exposes_orchestrator_flags():
     """sia run --help should show the orchestrator flags."""
     result = _sia("run", "--help")
     assert result.returncode == 0
-    for flag in ("--max_gen", "--task", "--task_dir", "--meta-profile", "--target-profile", "--sandbox"):
+    for flag in ("--max_gen", "--task", "--task_dir", "--meta-agent-profile", "--target-agent-profile", "--sandbox"):
         assert flag in result.stdout
 
 

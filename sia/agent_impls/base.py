@@ -1,10 +1,11 @@
-"""Agent-backend registry.
+"""Agent-implementation registry.
 
-A backend runs a meta/feedback agent: an async runner with the signature
-``run(model_name, max_turns, prompt, agent_working_directory)``. Backends register
-themselves by name; the orchestrator and CLI discover them via this registry, so
-adding one is a single ``register(...)`` call. Optional SDK imports happen lazily
-inside each runner, so the registry lists every backend regardless of what's installed.
+An *agent impl* runs a meta/feedback agent: an async runner with the signature
+``run(model_name, max_turns, prompt, agent_working_directory)``. Implementations
+register themselves by a unique id; the orchestrator and CLI discover them via this
+registry, so adding one is a single ``register(...)`` call. Optional SDK imports
+happen lazily inside each runner, so the registry lists every impl regardless of
+what's installed.
 """
 
 from __future__ import annotations
@@ -27,21 +28,21 @@ REGISTRY: dict[str, AgentRunner] = {}
 
 
 def register(name: str, runner: AgentRunner) -> AgentRunner:
-    """Register an agent-backend runner under ``name``."""
+    """Register an agent-impl runner under ``name``."""
     REGISTRY[name] = runner
     return runner
 
 
-def available_backends() -> list[str]:
-    """Names of all registered backends."""
+def available_agent_impls() -> list[str]:
+    """Ids of all registered agent impls."""
     return list(REGISTRY)
 
 
-def get_backend(name: str) -> AgentRunner:
+def get_agent_impl(name: str) -> AgentRunner:
     """Return the runner registered under ``name`` (raises ValueError if unknown)."""
     if name not in REGISTRY:
-        available = ", ".join(available_backends())
-        raise ValueError(f"Unknown backend: {name}. Available: {available}")
+        available = ", ".join(available_agent_impls())
+        raise ValueError(f"Unknown agent impl: {name}. Available: {available}")
     return REGISTRY[name]
 
 
@@ -50,18 +51,18 @@ async def run_agent(
     max_turns: str,
     prompt: str,
     agent_working_directory: str,
-    backend: str = "claude",
+    agent_impl: str = "claude",
     provider: Provider | None = None,
 ) -> None:
-    """Dispatch to the named backend.
+    """Dispatch to the named agent impl.
 
     Args:
-        model_name: The model to use (format depends on backend).
+        model_name: The model to use (format depends on the agent impl).
         max_turns: Maximum number of turns for the agent.
         prompt: The task prompt to send to the agent.
         agent_working_directory: Working directory for the agent.
-        backend: Which registered backend to use (e.g. "claude", "openhands", "pydantic-ai").
+        agent_impl: Which registered impl to use (e.g. "claude", "openhands", "pydantic-ai").
         provider: Optional endpoint/credentials for the model (api_key_env, base_url).
     """
-    logger.info(f"Using {backend} backend")
-    await get_backend(backend)(model_name, max_turns, prompt, agent_working_directory, provider=provider)
+    logger.info(f"Using {agent_impl} agent impl")
+    await get_agent_impl(agent_impl)(model_name, max_turns, prompt, agent_working_directory, provider=provider)

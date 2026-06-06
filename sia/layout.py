@@ -32,6 +32,7 @@ class Names:
     IMPROVEMENT_MD = "improvement.md"
     META_PROMPT = "meta_agent_prompt.txt"
     FEEDBACK_PROMPT = "feedback_agent_prompt.txt"
+    REQUIREMENTS_TXT = "requirements.txt"
     VENV_DIR = "venv"
     RUNS_ROOT = "./runs"
 
@@ -40,8 +41,10 @@ class Names:
     TASK_MD = "data/public/task.md"
     EVALUATE_PY = "evaluate.py"
     SHARED_SAMPLE_EXECUTION = "sample_agent_execution.json"
-    SAMPLE_TASK_DESCRIPTIONS = "reference/SAMPLE_TASK_DESCRIPTIONS.md"
-    REFERENCE_AGENT = "reference/reference_target_agent.py"
+    REFERENCE_DIR = "reference"
+    REFERENCE_AGENT_FILE = "reference_target_agent.py"
+    SAMPLE_TASK_DESCRIPTIONS = f"{REFERENCE_DIR}/SAMPLE_TASK_DESCRIPTIONS.md"
+    REFERENCE_AGENT = f"{REFERENCE_DIR}/{REFERENCE_AGENT_FILE}"
     SHARED_DIR = "_shared"
 
 
@@ -160,6 +163,10 @@ class TaskLayout:
     @property
     def sample_descriptions(self) -> str:
         return os.path.join(self.task_dir, Names.SAMPLE_TASK_DESCRIPTIONS)
+
+    @property
+    def reference_dir(self) -> str:
+        return os.path.join(self.task_dir, Names.REFERENCE_DIR)
 
     @property
     def reference_agent(self) -> str:

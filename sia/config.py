@@ -13,8 +13,8 @@ class Config:
     """Single source of truth for all SIA configuration defaults."""
 
     # Agent profile defaults (JSON profiles selected on the CLI, see sia/defaults/profiles/)
-    DEFAULT_META_PROFILE: str = "default-meta"
-    DEFAULT_TARGET_PROFILE: str = "default-target"
+    DEFAULT_META_AGENT_PROFILE: str = "default-meta"
+    DEFAULT_TARGET_AGENT_PROFILE: str = "default-target"
 
     # Model defaults (fallbacks for context metadata / env overrides)
     DEFAULT_CLAUDE_META_MODEL: str = "haiku"
@@ -28,7 +28,7 @@ class Config:
     # Agent execution
     DEFAULT_MAX_TURNS: int = 20
     CONTEXT_SUMMARY_MAX_TURNS: int = 5
-    DEFAULT_BACKEND: str = "claude"
+    DEFAULT_AGENT_IMPL: str = "claude"
 
     # Truncation limits
     AGENT_CODE_PREVIEW_LIMIT: int = 3000
@@ -69,12 +69,12 @@ class Config:
         """Create Config with overrides from SIA_* environment variables."""
         cfg = cls()
         env_map = {
-            "SIA_META_PROFILE": ("DEFAULT_META_PROFILE", str),
-            "SIA_TARGET_PROFILE": ("DEFAULT_TARGET_PROFILE", str),
+            "SIA_META_AGENT_PROFILE": ("DEFAULT_META_AGENT_PROFILE", str),
+            "SIA_TARGET_AGENT_PROFILE": ("DEFAULT_TARGET_AGENT_PROFILE", str),
             "SIA_META_MODEL": ("DEFAULT_CLAUDE_META_MODEL", str),
             "SIA_TASK_MODEL": ("DEFAULT_TASK_MODEL", str),
             "SIA_MAX_GENERATIONS": ("DEFAULT_MAX_GENERATIONS", int),
-            "SIA_BACKEND": ("DEFAULT_BACKEND", str),
+            "SIA_AGENT_IMPL": ("DEFAULT_AGENT_IMPL", str),
             "SIA_MAX_TURNS": ("DEFAULT_MAX_TURNS", int),
             "SIA_SANDBOX_MODE": ("SANDBOX_MODE", str),
         }
