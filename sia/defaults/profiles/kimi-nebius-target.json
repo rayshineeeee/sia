@@ -1,5 +1,5 @@
 {
-  "profile_id": "kimi-nebius",
+  "profile_id": "kimi-nebius-target",
   "name": "Kimi K2.6 on Nebius",
   "backend": "codegen",
   "model": "moonshotai/Kimi-K2.6",
