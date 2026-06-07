@@ -16,8 +16,8 @@ const dmMono = DM_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "SIA Iterations",
-  description: "Scrollable SIA iteration prototype with comparison mode.",
+  title: "deSIAgn",
+  description: "deSIAgn — a self-improving agent that learns to design in your taste.",
 };
 
 export default function RootLayout({

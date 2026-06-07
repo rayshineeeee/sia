@@ -1,4 +1,5 @@
 import type { Iteration } from "./types";
+import { generatedRenders } from "./iterations.generated";
 
 export const TOTAL_ITERATIONS = 100;
 
@@ -31,15 +32,20 @@ export const iterations: Iteration[] = Array.from(
   { length: TOTAL_ITERATIONS },
   (_, index) => {
     const id = index + 1;
+    // Merge in real convergence data for this iteration if the builder produced it
+    // (additive: cards beyond the produced count keep their synthetic placeholder).
+    const gen = generatedRenders[index];
 
     return {
       id,
       label: "Iteration",
       number: padIteration(id),
-      originalPrompt: originalPrompts[index % originalPrompts.length],
-      refinedPrompt: refinedPrompts[index % refinedPrompts.length],
-      summary: descriptions[index % descriptions.length],
+      originalPrompt: gen?.originalPrompt ?? originalPrompts[index % originalPrompts.length],
+      refinedPrompt: gen?.refinedPrompt ?? refinedPrompts[index % refinedPrompts.length],
+      summary: gen?.summary ?? descriptions[index % descriptions.length],
       title: `Iteration ${padIteration(id)}`,
+      renderUrl: gen?.renderUrl,
+      accuracy: gen?.accuracy,
     };
   },
 );

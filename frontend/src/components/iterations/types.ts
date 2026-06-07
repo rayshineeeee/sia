@@ -6,6 +6,9 @@ export type Iteration = {
   refinedPrompt: string;
   summary: string;
   title: string;
+  // Optional real-data fields loaded from a SIA convergence run (see iterations.generated.ts).
+  renderUrl?: string;
+  accuracy?: number;
 };
 
 export type ExperienceVariant = "v1" | "v2" | "v3";

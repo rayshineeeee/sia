@@ -27,7 +27,7 @@ export function StageBackdrop({
           } as CSSProperties
         }
       >
-        <span>SIA</span>
+        <span>deSIAgn</span>
       </div>
 
       <motion.div

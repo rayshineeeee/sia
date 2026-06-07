@@ -14,6 +14,24 @@ export function IterationVisual({
     .map((point, index) => `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`)
     .join(" ");
 
+  // Real convergence render loaded for this iteration -> show it in the card.
+  if (iteration.renderUrl) {
+    return (
+      <div className={`iteration-visual ${large ? "iteration-visual-large" : ""}`}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          alt=""
+          aria-hidden="true"
+          src={iteration.renderUrl}
+          style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+        />
+        {typeof iteration.accuracy === "number" ? (
+          <span className="iteration-acc">{iteration.accuracy.toFixed(0)}</span>
+        ) : null}
+      </div>
+    );
+  }
+
   return (
     <svg
       aria-hidden="true"
