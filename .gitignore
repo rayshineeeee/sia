@@ -4,6 +4,10 @@
 # Hugging Face model cache for SIA tasks (large binaries, e.g. 600MB CLIP weights)
 **/.hfcache/
 jonslop/tasks/*/.hfcache/
+# Scratch duplicate frontend (643MB) + JS build caches / deps — never commit
+frontend-b/
+**/node_modules/
+**/.next/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -225,3 +229,8 @@ runs
 .understand-anything/intermediate/
 .understand-anything/tmp/
 .understand-anything/diff-overlay.json
+
+# --- Cerebras: DEV-ONLY fast-inference override (do NOT ship; product runs on Nebius) ---
+sia/defaults/providers/cerebras.json
+sia/defaults/profiles/gptoss-cerebras-target.json
+sia/defaults/profiles/gptoss-cerebras-meta.json
