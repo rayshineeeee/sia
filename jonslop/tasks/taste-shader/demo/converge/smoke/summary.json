@@ -1,0 +1,13 @@
+{
+  "reference": "/Users/johnnysheng/code/sia/jonslop/tasks/taste-shader/demo/converge/reference.jpg",
+  "iters": 5,
+  "critique_mode": "VLM-guided (Qwen/Qwen3.5-397B-A17B)",
+  "vision_model": "Qwen/Qwen3.5-397B-A17B",
+  "clip_model": "ViT-B-32/laion2b_s34b_b79k",
+  "initial_similarity": 0.352614,
+  "best_similarity": 0.532316,
+  "improvement": 0.179702,
+  "kept_steps": 3,
+  "total_steps": 6,
+  "finished": "2026-06-06T16:36:26.695750"
+}

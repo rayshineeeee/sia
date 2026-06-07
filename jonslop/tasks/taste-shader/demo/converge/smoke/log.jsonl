@@ -1,0 +1,6 @@
+{"iter": 0, "similarity": 0.352614, "kept": true, "notes": "initial shader (compiled); Procedural shader that renders thin white filaments of the T"}
+{"iter": 1, "similarity": 0.47098, "kept": true, "notes": "improved (compiled); Increased brightness, added dense sampling of the "}
+{"iter": 2, "similarity": 0.532316, "kept": true, "notes": "improved (compiled); Increased brightness, ray steps, and curve samples"}
+{"iter": 3, "similarity": 0.532316, "kept": false, "notes": "candidate flat (std<0.02); reverted"}
+{"iter": 4, "similarity": 0.532316, "kept": false, "notes": "candidate flat (std<0.02); reverted"}
+{"iter": 5, "similarity": 0.532316, "kept": false, "notes": "candidate flat (std<0.02); reverted"}

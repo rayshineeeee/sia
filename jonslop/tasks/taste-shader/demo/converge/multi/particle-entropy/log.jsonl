@@ -1,0 +1,101 @@
+{"iter": 0, "similarity": 0.496685, "kept": true, "notes": "initial shader (compiled); Procedural rendering of Thomas attractor ribbons using dista"}
+{"iter": 1, "similarity": 0.545359, "kept": true, "notes": "improved (compiled); Switched from min\u2011distance to additive Gaussian co"}
+{"iter": 2, "similarity": 0.419769, "kept": false, "notes": "no gain (0.4198<=0.5454); reverted"}
+{"iter": 3, "similarity": 0.535663, "kept": false, "notes": "no gain (0.5357<=0.5454); reverted"}
+{"iter": 4, "similarity": 0.556974, "kept": true, "notes": "improved (compiled); Reduced particle count and radius, increased integ"}
+{"iter": 5, "similarity": 0.552998, "kept": false, "notes": "no gain (0.5530<=0.5570); reverted"}
+{"iter": 6, "similarity": 0.541572, "kept": false, "notes": "no gain (0.5416<=0.5570); reverted"}
+{"iter": 7, "similarity": 0.569251, "kept": true, "notes": "improved (compiled); Made filaments thinner and sharper, increased part"}
+{"iter": 8, "similarity": 0.545431, "kept": false, "notes": "no gain (0.5454<=0.5693); reverted"}
+{"iter": 9, "similarity": 0.549581, "kept": false, "notes": "no gain (0.5496<=0.5693); reverted"}
+{"iter": 10, "similarity": 0.557155, "kept": false, "notes": "no gain (0.5572<=0.5693); reverted"}
+{"iter": 11, "similarity": 0.569184, "kept": false, "notes": "no gain (0.5692<=0.5693); reverted"}
+{"iter": 12, "similarity": 0.490372, "kept": false, "notes": "no gain (0.4904<=0.5693); reverted"}
+{"iter": 13, "similarity": 0.558847, "kept": false, "notes": "no gain (0.5588<=0.5693); reverted"}
+{"iter": 14, "similarity": 0.552446, "kept": false, "notes": "no gain (0.5524<=0.5693); reverted"}
+{"iter": 15, "similarity": 0.564786, "kept": false, "notes": "no gain (0.5648<=0.5693); reverted"}
+{"iter": 16, "similarity": 0.480755, "kept": false, "notes": "no gain (0.4808<=0.5693); reverted"}
+{"iter": 17, "similarity": 0.567881, "kept": false, "notes": "no gain (0.5679<=0.5693); reverted"}
+{"iter": 18, "similarity": 0.558847, "kept": false, "notes": "no gain (0.5588<=0.5693); reverted"}
+{"iter": 19, "similarity": 0.549581, "kept": false, "notes": "no gain (0.5496<=0.5693); reverted"}
+{"iter": 20, "similarity": 0.50677, "kept": false, "notes": "no gain (0.5068<=0.5693); reverted"}
+{"iter": 21, "similarity": 0.553454, "kept": false, "notes": "no gain (0.5535<=0.5693); reverted"}
+{"iter": 22, "similarity": 0.556233, "kept": false, "notes": "no gain (0.5562<=0.5693); reverted"}
+{"iter": 23, "similarity": 0.564786, "kept": false, "notes": "no gain (0.5648<=0.5693); reverted"}
+{"iter": 24, "similarity": 0.532176, "kept": false, "notes": "no gain (0.5322<=0.5693); reverted"}
+{"iter": 25, "similarity": 0.561483, "kept": false, "notes": "no gain (0.5615<=0.5693); reverted"}
+{"iter": 26, "similarity": 0.553081, "kept": false, "notes": "no gain (0.5531<=0.5693); reverted"}
+{"iter": 27, "similarity": 0.564863, "kept": false, "notes": "no gain (0.5649<=0.5693); reverted"}
+{"iter": 28, "similarity": 0.491016, "kept": false, "notes": "no gain (0.4910<=0.5693); reverted"}
+{"iter": 29, "similarity": 0.556815, "kept": false, "notes": "no gain (0.5568<=0.5693); reverted"}
+{"iter": 30, "similarity": 0.571629, "kept": true, "notes": "improved (compiled); Increased particle count and steps for richer attr"}
+{"iter": 31, "similarity": 0.516825, "kept": false, "notes": "no gain (0.5168<=0.5716); reverted"}
+{"iter": 32, "similarity": 0.563734, "kept": false, "notes": "no gain (0.5637<=0.5716); reverted"}
+{"iter": 33, "similarity": 0.577994, "kept": true, "notes": "improved (compiled); Increased particle/step counts, sharpened core rad"}
+{"iter": 34, "similarity": 0.528989, "kept": false, "notes": "no gain (0.5290<=0.5780); reverted"}
+{"iter": 35, "similarity": 0.542611, "kept": false, "notes": "no gain (0.5426<=0.5780); reverted"}
+{"iter": 36, "similarity": 0.529859, "kept": false, "notes": "no gain (0.5299<=0.5780); reverted"}
+{"iter": 37, "similarity": 0.489592, "kept": false, "notes": "no gain (0.4896<=0.5780); reverted"}
+{"iter": 38, "similarity": 0.574435, "kept": false, "notes": "no gain (0.5744<=0.5780); reverted"}
+{"iter": 39, "similarity": 0.577994, "kept": false, "notes": "candidate flat (std<0.02); reverted"}
+{"iter": 40, "similarity": 0.517052, "kept": false, "notes": "no gain (0.5171<=0.5780); reverted"}
+{"iter": 41, "similarity": 0.512394, "kept": false, "notes": "no gain (0.5124<=0.5780); reverted"}
+{"iter": 42, "similarity": 0.518015, "kept": false, "notes": "no gain (0.5180<=0.5780); reverted"}
+{"iter": 43, "similarity": 0.393637, "kept": false, "notes": "no gain (0.3936<=0.5780); reverted"}
+{"iter": 44, "similarity": 0.424872, "kept": false, "notes": "no gain (0.4249<=0.5780); reverted"}
+{"iter": 45, "similarity": 0.520566, "kept": false, "notes": "no gain (0.5206<=0.5780); reverted"}
+{"iter": 46, "similarity": 0.580235, "kept": true, "notes": "improved (compiled); Increased particle count and integration steps for"}
+{"iter": 47, "similarity": 0.479367, "kept": false, "notes": "no gain (0.4794<=0.5802); reverted"}
+{"iter": 48, "similarity": 0.519589, "kept": false, "notes": "no gain (0.5196<=0.5802); reverted"}
+{"iter": 49, "similarity": 0.432448, "kept": false, "notes": "no gain (0.4324<=0.5802); reverted"}
+{"iter": 50, "similarity": 0.562246, "kept": false, "notes": "no gain (0.5622<=0.5802); reverted"}
+{"iter": 51, "similarity": 0.56748, "kept": false, "notes": "no gain (0.5675<=0.5802); reverted"}
+{"iter": 52, "similarity": 0.561789, "kept": false, "notes": "no gain (0.5618<=0.5802); reverted"}
+{"iter": 53, "similarity": 0.469731, "kept": false, "notes": "no gain (0.4697<=0.5802); reverted"}
+{"iter": 54, "similarity": 0.553925, "kept": false, "notes": "no gain (0.5539<=0.5802); reverted"}
+{"iter": 55, "similarity": 0.484982, "kept": false, "notes": "no gain (0.4850<=0.5802); reverted"}
+{"iter": 56, "similarity": 0.522279, "kept": false, "notes": "no gain (0.5223<=0.5802); reverted"}
+{"iter": 57, "similarity": 0.495282, "kept": false, "notes": "no gain (0.4953<=0.5802); reverted"}
+{"iter": 58, "similarity": 0.566319, "kept": false, "notes": "no gain (0.5663<=0.5802); reverted"}
+{"iter": 59, "similarity": 0.584996, "kept": true, "notes": "improved (compiled after 1 repair(s)); Adjusted radii to be pixel\u2011size based (1\u202fpx core, "}
+{"iter": 60, "similarity": 0.575467, "kept": false, "notes": "no gain (0.5755<=0.5850); reverted"}
+{"iter": 61, "similarity": 0.576656, "kept": false, "notes": "no gain (0.5767<=0.5850); reverted"}
+{"iter": 62, "similarity": 0.559239, "kept": false, "notes": "no gain (0.5592<=0.5850); reverted"}
+{"iter": 63, "similarity": 0.586287, "kept": true, "notes": "improved (compiled); Reduced halo strength and softened its falloff, sh"}
+{"iter": 64, "similarity": 0.557068, "kept": false, "notes": "no gain (0.5571<=0.5863); reverted"}
+{"iter": 65, "similarity": 0.472863, "kept": false, "notes": "no gain (0.4729<=0.5863); reverted"}
+{"iter": 66, "similarity": 0.569652, "kept": false, "notes": "no gain (0.5697<=0.5863); reverted"}
+{"iter": 67, "similarity": 0.612152, "kept": true, "notes": "improved (compiled); Increased particle count and integration steps for"}
+{"iter": 68, "similarity": 0.580364, "kept": false, "notes": "no gain (0.5804<=0.6122); reverted"}
+{"iter": 69, "similarity": 0.510987, "kept": false, "notes": "no gain (0.5110<=0.6122); reverted"}
+{"iter": 70, "similarity": 0.526693, "kept": false, "notes": "no gain (0.5267<=0.6122); reverted"}
+{"iter": 71, "similarity": 0.572795, "kept": false, "notes": "no gain (0.5728<=0.6122); reverted"}
+{"iter": 72, "similarity": 0.492027, "kept": false, "notes": "no gain (0.4920<=0.6122); reverted"}
+{"iter": 73, "similarity": 0.527674, "kept": false, "notes": "no gain (0.5277<=0.6122); reverted"}
+{"iter": 74, "similarity": 0.512102, "kept": false, "notes": "no gain (0.5121<=0.6122); reverted"}
+{"iter": 75, "similarity": 0.583926, "kept": false, "notes": "no gain (0.5839<=0.6122); reverted"}
+{"iter": 76, "similarity": 0.488199, "kept": false, "notes": "no gain (0.4882<=0.6122); reverted"}
+{"iter": 77, "similarity": 0.60773, "kept": false, "notes": "no gain (0.6077<=0.6122); reverted"}
+{"iter": 78, "similarity": 0.580589, "kept": false, "notes": "no gain (0.5806<=0.6122); reverted"}
+{"iter": 79, "similarity": 0.583049, "kept": false, "notes": "no gain (0.5830<=0.6122); reverted"}
+{"iter": 80, "similarity": 0.55985, "kept": false, "notes": "no gain (0.5598<=0.6122); reverted"}
+{"iter": 81, "similarity": 0.561493, "kept": false, "notes": "no gain (0.5615<=0.6122); reverted"}
+{"iter": 82, "similarity": 0.553322, "kept": false, "notes": "no gain (0.5533<=0.6122); reverted"}
+{"iter": 83, "similarity": 0.55465, "kept": false, "notes": "no gain (0.5547<=0.6122); reverted"}
+{"iter": 84, "similarity": 0.576299, "kept": false, "notes": "no gain (0.5763<=0.6122); reverted"}
+{"iter": 85, "similarity": 0.57328, "kept": false, "notes": "no gain (0.5733<=0.6122); reverted"}
+{"iter": 86, "similarity": 0.584648, "kept": false, "notes": "no gain (0.5846<=0.6122); reverted"}
+{"iter": 87, "similarity": 0.578421, "kept": false, "notes": "no gain (0.5784<=0.6122); reverted"}
+{"iter": 88, "similarity": 0.568188, "kept": false, "notes": "no gain (0.5682<=0.6122); reverted"}
+{"iter": 89, "similarity": 0.529134, "kept": false, "notes": "no gain (0.5291<=0.6122); reverted"}
+{"iter": 90, "similarity": 0.588018, "kept": false, "notes": "no gain (0.5880<=0.6122); reverted"}
+{"iter": 91, "similarity": 0.598938, "kept": false, "notes": "no gain (0.5989<=0.6122); reverted"}
+{"iter": 92, "similarity": 0.574242, "kept": false, "notes": "no gain (0.5742<=0.6122); reverted"}
+{"iter": 93, "similarity": 0.580412, "kept": false, "notes": "no gain (0.5804<=0.6122); reverted"}
+{"iter": 94, "similarity": 0.57623, "kept": false, "notes": "no gain (0.5762<=0.6122); reverted"}
+{"iter": 95, "similarity": 0.57716, "kept": false, "notes": "no gain (0.5772<=0.6122); reverted"}
+{"iter": 96, "similarity": 0.554233, "kept": false, "notes": "no gain (0.5542<=0.6122); reverted"}
+{"iter": 97, "similarity": 0.587174, "kept": false, "notes": "no gain (0.5872<=0.6122); reverted"}
+{"iter": 98, "similarity": 0.561986, "kept": false, "notes": "no gain (0.5620<=0.6122); reverted"}
+{"iter": 99, "similarity": 0.595352, "kept": false, "notes": "no gain (0.5954<=0.6122); reverted"}
+{"iter": 100, "similarity": 0.595282, "kept": false, "notes": "no gain (0.5953<=0.6122); reverted"}

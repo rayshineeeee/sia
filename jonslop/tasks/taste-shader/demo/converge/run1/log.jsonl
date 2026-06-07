@@ -1,0 +1,25 @@
+{"iter": 0, "similarity": 0.352614, "kept": true, "notes": "initial shader (compiled); Procedural shader that renders thin white filaments of the T"}
+{"iter": 1, "similarity": 0.450844, "kept": true, "notes": "improved (compiled after 1 repair(s)); Increased brightness, added a 2\u20113 torus knot, extr"}
+{"iter": 2, "similarity": 0.683935, "kept": true, "notes": "improved (compiled after 1 repair(s)); Replaced 2D ring with a thin torus\u2011knot tube, incr"}
+{"iter": 3, "similarity": 0.683935, "kept": false, "notes": "candidate flat (std<0.02); reverted"}
+{"iter": 4, "similarity": 0.446406, "kept": false, "notes": "no gain (0.4464<=0.6839); reverted"}
+{"iter": 5, "similarity": 0.636856, "kept": false, "notes": "no gain (0.6369<=0.6839); reverted"}
+{"iter": 6, "similarity": 0.671959, "kept": false, "notes": "no gain (0.6720<=0.6839); reverted"}
+{"iter": 7, "similarity": 0.704363, "kept": true, "notes": "improved (compiled); Replaced simple ring geometry with a torus knot ri"}
+{"iter": 8, "similarity": 0.725915, "kept": true, "notes": "improved (compiled); Increased core radius, boosted brightness, added s"}
+{"iter": 9, "similarity": 0.725915, "kept": false, "notes": "candidate flat (std<0.02); reverted"}
+{"iter": 10, "similarity": 0.673408, "kept": false, "notes": "no gain (0.6734<=0.7259); reverted"}
+{"iter": 11, "similarity": 0.464915, "kept": false, "notes": "no gain (0.4649<=0.7259); reverted"}
+{"iter": 12, "similarity": 0.651504, "kept": false, "notes": "no gain (0.6515<=0.7259); reverted"}
+{"iter": 13, "similarity": 0.531243, "kept": false, "notes": "no gain (0.5312<=0.7259); reverted"}
+{"iter": 14, "similarity": 0.532106, "kept": false, "notes": "no gain (0.5321<=0.7259); reverted"}
+{"iter": 15, "similarity": 0.549726, "kept": false, "notes": "no gain (0.5497<=0.7259); reverted"}
+{"iter": 16, "similarity": 0.625437, "kept": false, "notes": "no gain (0.6254<=0.7259); reverted"}
+{"iter": 17, "similarity": 0.637731, "kept": false, "notes": "no gain (0.6377<=0.7259); reverted"}
+{"iter": 18, "similarity": 0.62679, "kept": false, "notes": "no gain (0.6268<=0.7259); reverted"}
+{"iter": 19, "similarity": 0.676327, "kept": false, "notes": "no gain (0.6763<=0.7259); reverted"}
+{"iter": 20, "similarity": 0.725915, "kept": false, "notes": "candidate flat (std<0.02); reverted"}
+{"iter": 21, "similarity": 0.632147, "kept": false, "notes": "no gain (0.6321<=0.7259); reverted"}
+{"iter": 22, "similarity": 0.634813, "kept": false, "notes": "no gain (0.6348<=0.7259); reverted"}
+{"iter": 23, "similarity": 0.652054, "kept": false, "notes": "no gain (0.6521<=0.7259); reverted"}
+{"iter": 24, "similarity": 0.678942, "kept": false, "notes": "no gain (0.6789<=0.7259); reverted"}

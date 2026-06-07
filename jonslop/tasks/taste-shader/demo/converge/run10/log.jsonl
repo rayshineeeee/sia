@@ -1,0 +1,44 @@
+{"iter": 0, "similarity": 0.367266, "kept": true, "notes": "initial shader (compiled); Procedural Thomas attractor ribbons with bloom."}
+{"iter": 1, "similarity": 0.420412, "kept": true, "notes": "improved (compiled); Increased seed count and integration steps, added "}
+{"iter": 2, "similarity": 0.356215, "kept": false, "notes": "no gain (0.3562<=0.4204); reverted"}
+{"iter": 3, "similarity": 0.39837, "kept": false, "notes": "no gain (0.3984<=0.4204); reverted"}
+{"iter": 4, "similarity": 0.421114, "kept": true, "notes": "improved (compiled); Made filaments thinner (higher falloff), increased"}
+{"iter": 5, "similarity": 0.460795, "kept": true, "notes": "improved (compiled); Increased seed count and steps for denser, smoothe"}
+{"iter": 6, "similarity": 0.462216, "kept": true, "notes": "improved (compiled); Increased seed count and steps for richer attracto"}
+{"iter": 7, "similarity": 0.423923, "kept": false, "notes": "no gain (0.4239<=0.4622); reverted"}
+{"iter": 8, "similarity": 0.434625, "kept": false, "notes": "no gain (0.4346<=0.4622); reverted"}
+{"iter": 9, "similarity": 0.432107, "kept": false, "notes": "no gain (0.4321<=0.4622); reverted"}
+{"iter": 10, "similarity": 0.455803, "kept": false, "notes": "no gain (0.4558<=0.4622); reverted"}
+{"iter": 11, "similarity": 0.435316, "kept": false, "notes": "no gain (0.4353<=0.4622); reverted"}
+{"iter": 12, "similarity": 0.407003, "kept": false, "notes": "no gain (0.4070<=0.4622); reverted"}
+{"iter": 13, "similarity": 0.367988, "kept": false, "notes": "no gain (0.3680<=0.4622); reverted"}
+{"iter": 14, "similarity": 0.462216, "kept": false, "notes": "candidate flat (std<0.02); reverted"}
+{"iter": 15, "similarity": 0.469282, "kept": true, "notes": "improved (compiled); Added a solid white rectangle and a placeholder ex"}
+{"iter": 16, "similarity": 0.448617, "kept": false, "notes": "no gain (0.4486<=0.4693); reverted"}
+{"iter": 17, "similarity": 0.469282, "kept": false, "notes": "candidate flat (std<0.02); reverted"}
+{"iter": 18, "similarity": 0.469282, "kept": false, "notes": "candidate flat (std<0.02); reverted"}
+{"iter": 19, "similarity": 0.469282, "kept": false, "notes": "candidate flat (std<0.02); reverted"}
+{"iter": 20, "similarity": 0.385799, "kept": false, "notes": "no gain (0.3858<=0.4693); reverted"}
+{"iter": 21, "similarity": 0.473707, "kept": true, "notes": "improved (compiled); Replaced placeholder geometry with two extruded bl"}
+{"iter": 22, "similarity": 0.455699, "kept": false, "notes": "no gain (0.4557<=0.4737); reverted"}
+{"iter": 23, "similarity": 0.49364, "kept": true, "notes": "improved (compiled); Replaced flat boxes with a rough multi\u2011box approxi"}
+{"iter": 24, "similarity": 0.49364, "kept": false, "notes": "candidate flat (std<0.02); reverted"}
+{"iter": 25, "similarity": 0.366935, "kept": false, "notes": "no gain (0.3669<=0.4936); reverted"}
+{"iter": 26, "similarity": 0.477336, "kept": false, "notes": "no gain (0.4773<=0.4936); reverted"}
+{"iter": 27, "similarity": 0.49364, "kept": false, "notes": "candidate flat (std<0.02); reverted"}
+{"iter": 28, "similarity": 0.49364, "kept": false, "notes": "candidate flat (std<0.02); reverted"}
+{"iter": 29, "similarity": 0.49364, "kept": false, "notes": "candidate flat (std<0.02); reverted"}
+{"iter": 30, "similarity": 0.49364, "kept": false, "notes": "candidate flat (std<0.02); reverted"}
+{"iter": 31, "similarity": 0.49364, "kept": false, "notes": "candidate flat (std<0.02); reverted"}
+{"iter": 32, "similarity": 0.49364, "kept": false, "notes": "candidate flat (std<0.02); reverted"}
+{"iter": 33, "similarity": 0.49364, "kept": false, "notes": "candidate flat (std<0.02); reverted"}
+{"iter": 34, "similarity": 0.372012, "kept": false, "notes": "no gain (0.3720<=0.4936); reverted"}
+{"iter": 35, "similarity": 0.49364, "kept": false, "notes": "candidate flat (std<0.02); reverted"}
+{"iter": 36, "similarity": 0.505254, "kept": true, "notes": "improved (compiled); Added rough SDFs for letters ELI and STRUCTURE, a "}
+{"iter": 37, "similarity": 0.505254, "kept": false, "notes": "candidate flat (std<0.02); reverted"}
+{"iter": 38, "similarity": 0.359109, "kept": false, "notes": "no gain (0.3591<=0.5053); reverted"}
+{"iter": 39, "similarity": 0.462104, "kept": false, "notes": "no gain (0.4621<=0.5053); reverted"}
+{"iter": 40, "similarity": 0.505254, "kept": false, "notes": "candidate flat (std<0.02); reverted"}
+{"iter": 41, "similarity": 0.498577, "kept": false, "notes": "no gain (0.4986<=0.5053); reverted"}
+{"iter": 42, "similarity": 0.357841, "kept": false, "notes": "no gain (0.3578<=0.5053); reverted"}
+{"iter": 43, "similarity": 0.395317, "kept": false, "notes": "no gain (0.3953<=0.5053); reverted"}

@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>taste-shader · live convergence</title>
+<style>
+  :root { --bg:#0a0a0a; --fg:#f2f2ee; --muted:#8a8a82; --line:#222; --accent:#e0335a; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg);
+    font-family:"DM Mono",ui-monospace,SFMono-Regular,Menlo,monospace; }
+  header { display:flex; align-items:baseline; gap:18px; padding:18px 24px; border-bottom:1px solid var(--line); }
+  h1 { font-size:15px; font-weight:600; letter-spacing:.02em; margin:0; }
+  .sub { color:var(--muted); font-size:12px; }
+  main { padding:24px; max-width:1180px; margin:0 auto; }
+  .stage { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+  .panel { border:1px solid var(--line); border-radius:4px; overflow:hidden; background:#000; }
+  .panel .cap { display:flex; justify-content:space-between; padding:8px 12px; font-size:11px; color:var(--muted);
+    border-bottom:1px solid var(--line); background:#0d0d0d; }
+  .panel img { display:block; width:100%; aspect-ratio:1; object-fit:contain; background:#000; image-rendering:auto; }
+  .readout { display:flex; gap:28px; align-items:baseline; margin:22px 2px 14px; flex-wrap:wrap; }
+  .metric { display:flex; flex-direction:column; gap:3px; }
+  .metric b { font-size:30px; font-weight:600; font-variant-numeric:tabular-nums; line-height:1; }
+  .metric.best b { color:var(--accent); }
+  .metric span { font-size:11px; color:var(--muted); }
+  .status { font-size:12px; color:var(--muted); }
+  .curve { margin-top:14px; border:1px solid var(--line); border-radius:4px; background:#fff; }
+  .curve img { display:block; width:100%; }
+  .note { color:var(--muted); font-size:11px; margin-top:6px; min-height:14px; }
+  .live::before { content:"●"; color:#3ad07a; margin-right:6px; animation:b 1.4s infinite; }
+  @keyframes b { 50%{opacity:.25;} }
+</style>
+</head>
+<body>
+<header>
+  <h1>taste-shader · live convergence</h1>
+  <span class="sub" id="mode">connecting…</span>
+  <span class="sub live" id="live" style="margin-left:auto">watching run1</span>
+</header>
+<main>
+  <div class="stage">
+    <div class="panel">
+      <div class="cap"><span>TARGET — Johnny's taste reference</span><span>fixed</span></div>
+      <img id="ref" alt="reference" />
+    </div>
+    <div class="panel">
+      <div class="cap"><span>CURRENT best-so-far render</span><span id="iterCap">iter —</span></div>
+      <img id="cur" alt="current render" />
+    </div>
+  </div>
+
+  <div class="readout">
+    <div class="metric"><b id="sim">—</b><span>CLIP similarity (this iter)</span></div>
+    <div class="metric best"><b id="best">—</b><span>best-so-far</span></div>
+    <div class="metric"><b id="iter">—</b><span>iteration</span></div>
+    <div class="metric"><b id="kept">—</b><span>kept / total</span></div>
+    <div class="status" id="status">warming up…</div>
+  </div>
+  <div class="note" id="note"></div>
+
+  <div class="curve"><img id="curve" alt="convergence curve" /></div>
+</main>
+
+<script>
+const RUN = "run1";
+const pad = (n) => String(n).padStart(2, "0");
+const bust = () => "?t=" + Date.now();
+
+const el = (id) => document.getElementById(id);
+let lastIter = -1, done = false;
+
+async function tick() {
+  // 1) reference (load once)
+  if (!el("ref").src) el("ref").src = RUN + "/reference.png";
+
+  // 2) read the per-iteration log (source of truth: {iter, similarity, kept, notes})
+  let entries = [];
+  try {
+    const txt = await (await fetch(RUN + "/log.jsonl" + bust())).text();
+    entries = txt.trim().split("\n").filter(Boolean).map(JSON.parse);
+  } catch (_) {}
+
+  if (entries.length) {
+    el("status").textContent = done ? "converged ✓" : "running…";
+    const latest = entries[entries.length - 1];
+    const best = Math.max(...entries.map(e => e.similarity));
+    const kept = entries.filter(e => e.kept).length;
+    el("sim").textContent  = latest.similarity.toFixed(4);
+    el("best").textContent = best.toFixed(4);
+    el("iter").textContent = latest.iter;
+    el("iterCap").textContent = "iter " + latest.iter;
+    el("kept").textContent = kept + " / " + entries.length;
+    el("note").textContent = (latest.kept ? "KEPT · " : "reverted · ") + (latest.notes || "");
+    if (latest.iter !== lastIter) {           // new frame -> swap current render
+      el("cur").src = RUN + "/frames/iter_" + pad(latest.iter) + ".png" + bust();
+      lastIter = latest.iter;
+    }
+  } else {
+    el("status").textContent = "warming up — loading CLIP + generating initial shader…";
+  }
+
+  // 3) curve (always refresh; appears after a couple of iters)
+  el("curve").src = RUN + "/curve.png" + bust();
+
+  // 4) summary => finished; show the animated best
+  try {
+    const s = await (await fetch(RUN + "/summary.json" + bust())).json();
+    if (s && s.best_similarity != null) {
+      done = true;
+      el("mode").textContent = s.critique_mode || "";
+      el("live").textContent = "done · " + s.kept_steps + "/" + s.total_steps + " kept";
+      el("cur").src = RUN + "/best_animated.gif" + bust();
+      el("iterCap").textContent = "best · " + s.best_similarity.toFixed(4);
+    }
+  } catch (_) {}
+}
+tick();
+setInterval(tick, 1500);
+</script>
+</body>
+</html>

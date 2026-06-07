@@ -1,0 +1,101 @@
+{"iter": 0, "similarity": 0.503885, "kept": true, "notes": "initial shader (compiled); Procedural attractor ribbons with Gaussian falloff and simpl"}
+{"iter": 1, "similarity": 0.539986, "kept": true, "notes": "improved (compiled); Replaced blob primitive with a torus\u2011knot ribbon p"}
+{"iter": 2, "similarity": 0.575911, "kept": true, "notes": "improved (compiled); Replaced torus\u2011knot geometry with a Thomas strange"}
+{"iter": 3, "similarity": 0.582542, "kept": true, "notes": "improved (compiled); Replaced thick line with a torus\u2011knot parametric c"}
+{"iter": 4, "similarity": 0.599096, "kept": true, "notes": "improved (compiled); Added additive\u2011compatible alpha output, increased "}
+{"iter": 5, "similarity": 0.638575, "kept": true, "notes": "improved (compiled); Added perspective projection, camera tilt, jitter "}
+{"iter": 6, "similarity": 0.498459, "kept": false, "notes": "no gain (0.4985<=0.6386); reverted"}
+{"iter": 7, "similarity": 0.676036, "kept": true, "notes": "improved (compiled); Added tube thickness, jittered fibers, flow animat"}
+{"iter": 8, "similarity": 0.661472, "kept": false, "notes": "no gain (0.6615<=0.6760); reverted"}
+{"iter": 9, "similarity": 0.648244, "kept": false, "notes": "no gain (0.6482<=0.6760); reverted"}
+{"iter": 10, "similarity": 0.639991, "kept": false, "notes": "no gain (0.6400<=0.6760); reverted"}
+{"iter": 11, "similarity": 0.609976, "kept": false, "notes": "no gain (0.6100<=0.6760); reverted"}
+{"iter": 12, "similarity": 0.653239, "kept": false, "notes": "no gain (0.6532<=0.6760); reverted"}
+{"iter": 13, "similarity": 0.648348, "kept": false, "notes": "no gain (0.6483<=0.6760); reverted"}
+{"iter": 14, "similarity": 0.646222, "kept": false, "notes": "no gain (0.6462<=0.6760); reverted"}
+{"iter": 15, "similarity": 0.673035, "kept": false, "notes": "no gain (0.6730<=0.6760); reverted"}
+{"iter": 16, "similarity": 0.649164, "kept": false, "notes": "no gain (0.6492<=0.6760); reverted"}
+{"iter": 17, "similarity": 0.652208, "kept": false, "notes": "no gain (0.6522<=0.6760); reverted"}
+{"iter": 18, "similarity": 0.654984, "kept": false, "notes": "no gain (0.6550<=0.6760); reverted"}
+{"iter": 19, "similarity": 0.634186, "kept": false, "notes": "no gain (0.6342<=0.6760); reverted"}
+{"iter": 20, "similarity": 0.634923, "kept": false, "notes": "no gain (0.6349<=0.6760); reverted"}
+{"iter": 21, "similarity": 0.498697, "kept": false, "notes": "no gain (0.4987<=0.6760); reverted"}
+{"iter": 22, "similarity": 0.47227, "kept": false, "notes": "no gain (0.4723<=0.6760); reverted"}
+{"iter": 23, "similarity": 0.67671, "kept": true, "notes": "improved (compiled); Added a soft halo for bloom, a procedural grid tex"}
+{"iter": 24, "similarity": 0.631501, "kept": false, "notes": "no gain (0.6315<=0.6767); reverted"}
+{"iter": 25, "similarity": 0.688319, "kept": true, "notes": "improved (compiled); Implemented a thin ribbon mesh with cross\u2011hatch gr"}
+{"iter": 26, "similarity": 0.678177, "kept": false, "notes": "no gain (0.6782<=0.6883); reverted"}
+{"iter": 27, "similarity": 0.728071, "kept": true, "notes": "improved (compiled); Converted the thick line into a true ribbon by off"}
+{"iter": 28, "similarity": 0.680714, "kept": false, "notes": "no gain (0.6807<=0.7281); reverted"}
+{"iter": 29, "similarity": 0.690689, "kept": false, "notes": "no gain (0.6907<=0.7281); reverted"}
+{"iter": 30, "similarity": 0.703466, "kept": false, "notes": "no gain (0.7035<=0.7281); reverted"}
+{"iter": 31, "similarity": 0.626191, "kept": false, "notes": "no gain (0.6262<=0.7281); reverted"}
+{"iter": 32, "similarity": 0.736234, "kept": true, "notes": "improved (compiled); Increased steps and reduced dt for higher density;"}
+{"iter": 33, "similarity": 0.725067, "kept": false, "notes": "no gain (0.7251<=0.7362); reverted"}
+{"iter": 34, "similarity": 0.669149, "kept": false, "notes": "no gain (0.6691<=0.7362); reverted"}
+{"iter": 35, "similarity": 0.743561, "kept": true, "notes": "improved (compiled); Increased step count and reduced dt for a denser r"}
+{"iter": 36, "similarity": 0.668691, "kept": false, "notes": "no gain (0.6687<=0.7436); reverted"}
+{"iter": 37, "similarity": 0.71479, "kept": false, "notes": "no gain (0.7148<=0.7436); reverted"}
+{"iter": 38, "similarity": 0.64097, "kept": false, "notes": "no gain (0.6410<=0.7436); reverted"}
+{"iter": 39, "similarity": 0.646171, "kept": false, "notes": "no gain (0.6462<=0.7436); reverted"}
+{"iter": 40, "similarity": 0.662549, "kept": false, "notes": "no gain (0.6625<=0.7436); reverted"}
+{"iter": 41, "similarity": 0.660722, "kept": false, "notes": "no gain (0.6607<=0.7436); reverted"}
+{"iter": 42, "similarity": 0.722727, "kept": false, "notes": "no gain (0.7227<=0.7436); reverted"}
+{"iter": 43, "similarity": 0.751992, "kept": true, "notes": "improved (compiled); Widened ribbon to a true ribbon, added high\u2011freque"}
+{"iter": 44, "similarity": 0.751992, "kept": false, "notes": "candidate flat (std<0.02); reverted"}
+{"iter": 45, "similarity": 0.536895, "kept": false, "notes": "no gain (0.5369<=0.7520); reverted"}
+{"iter": 46, "similarity": 0.751992, "kept": false, "notes": "candidate flat (std<0.02); reverted"}
+{"iter": 47, "similarity": 0.539742, "kept": false, "notes": "no gain (0.5397<=0.7520); reverted"}
+{"iter": 48, "similarity": 0.633263, "kept": false, "notes": "no gain (0.6333<=0.7520); reverted"}
+{"iter": 49, "similarity": 0.64817, "kept": false, "notes": "no gain (0.6482<=0.7520); reverted"}
+{"iter": 50, "similarity": 0.676725, "kept": false, "notes": "no gain (0.6767<=0.7520); reverted"}
+{"iter": 51, "similarity": 0.65117, "kept": false, "notes": "no gain (0.6512<=0.7520); reverted"}
+{"iter": 52, "similarity": 0.751992, "kept": false, "notes": "candidate flat (std<0.02); reverted"}
+{"iter": 53, "similarity": 0.582771, "kept": false, "notes": "no gain (0.5828<=0.7520); reverted"}
+{"iter": 54, "similarity": 0.591608, "kept": false, "notes": "no gain (0.5916<=0.7520); reverted"}
+{"iter": 55, "similarity": 0.689491, "kept": false, "notes": "no gain (0.6895<=0.7520); reverted"}
+{"iter": 56, "similarity": 0.57654, "kept": false, "notes": "no gain (0.5765<=0.7520); reverted"}
+{"iter": 57, "similarity": 0.545547, "kept": false, "notes": "no gain (0.5455<=0.7520); reverted"}
+{"iter": 58, "similarity": 0.648181, "kept": false, "notes": "no gain (0.6482<=0.7520); reverted"}
+{"iter": 59, "similarity": 0.641301, "kept": false, "notes": "no gain (0.6413<=0.7520); reverted"}
+{"iter": 60, "similarity": 0.516273, "kept": false, "notes": "no gain (0.5163<=0.7520); reverted"}
+{"iter": 61, "similarity": 0.676616, "kept": false, "notes": "no gain (0.6766<=0.7520); reverted"}
+{"iter": 62, "similarity": 0.558401, "kept": false, "notes": "no gain (0.5584<=0.7520); reverted"}
+{"iter": 63, "similarity": 0.556199, "kept": false, "notes": "no gain (0.5562<=0.7520); reverted"}
+{"iter": 64, "similarity": 0.71633, "kept": false, "notes": "no gain (0.7163<=0.7520); reverted"}
+{"iter": 65, "similarity": 0.605462, "kept": false, "notes": "no gain (0.6055<=0.7520); reverted"}
+{"iter": 66, "similarity": 0.751992, "kept": false, "notes": "candidate flat (std<0.02); reverted"}
+{"iter": 67, "similarity": 0.715786, "kept": false, "notes": "no gain (0.7158<=0.7520); reverted"}
+{"iter": 68, "similarity": 0.699099, "kept": false, "notes": "no gain (0.6991<=0.7520); reverted"}
+{"iter": 69, "similarity": 0.592275, "kept": false, "notes": "no gain (0.5923<=0.7520); reverted"}
+{"iter": 70, "similarity": 0.560111, "kept": false, "notes": "no gain (0.5601<=0.7520); reverted"}
+{"iter": 71, "similarity": 0.5962, "kept": false, "notes": "no gain (0.5962<=0.7520); reverted"}
+{"iter": 72, "similarity": 0.660096, "kept": false, "notes": "no gain (0.6601<=0.7520); reverted"}
+{"iter": 73, "similarity": 0.730813, "kept": false, "notes": "no gain (0.7308<=0.7520); reverted"}
+{"iter": 74, "similarity": 0.576436, "kept": false, "notes": "no gain (0.5764<=0.7520); reverted"}
+{"iter": 75, "similarity": 0.724203, "kept": false, "notes": "no gain (0.7242<=0.7520); reverted"}
+{"iter": 76, "similarity": 0.515184, "kept": false, "notes": "no gain (0.5152<=0.7520); reverted"}
+{"iter": 77, "similarity": 0.625977, "kept": false, "notes": "no gain (0.6260<=0.7520); reverted"}
+{"iter": 78, "similarity": 0.609767, "kept": false, "notes": "no gain (0.6098<=0.7520); reverted"}
+{"iter": 79, "similarity": 0.633861, "kept": false, "notes": "no gain (0.6339<=0.7520); reverted"}
+{"iter": 80, "similarity": 0.619626, "kept": false, "notes": "no gain (0.6196<=0.7520); reverted"}
+{"iter": 81, "similarity": 0.660749, "kept": false, "notes": "no gain (0.6607<=0.7520); reverted"}
+{"iter": 82, "similarity": 0.597617, "kept": false, "notes": "no gain (0.5976<=0.7520); reverted"}
+{"iter": 83, "similarity": 0.573139, "kept": false, "notes": "no gain (0.5731<=0.7520); reverted"}
+{"iter": 84, "similarity": 0.561439, "kept": false, "notes": "no gain (0.5614<=0.7520); reverted"}
+{"iter": 85, "similarity": 0.538914, "kept": false, "notes": "no gain (0.5389<=0.7520); reverted"}
+{"iter": 86, "similarity": 0.751992, "kept": false, "notes": "candidate flat (std<0.02); reverted"}
+{"iter": 87, "similarity": 0.644579, "kept": false, "notes": "no gain (0.6446<=0.7520); reverted"}
+{"iter": 88, "similarity": 0.604346, "kept": false, "notes": "no gain (0.6043<=0.7520); reverted"}
+{"iter": 89, "similarity": 0.65279, "kept": false, "notes": "no gain (0.6528<=0.7520); reverted"}
+{"iter": 90, "similarity": 0.602565, "kept": false, "notes": "no gain (0.6026<=0.7520); reverted"}
+{"iter": 91, "similarity": 0.622229, "kept": false, "notes": "no gain (0.6222<=0.7520); reverted"}
+{"iter": 92, "similarity": 0.628143, "kept": false, "notes": "no gain (0.6281<=0.7520); reverted"}
+{"iter": 93, "similarity": 0.62131, "kept": false, "notes": "no gain (0.6213<=0.7520); reverted"}
+{"iter": 94, "similarity": 0.579792, "kept": false, "notes": "no gain (0.5798<=0.7520); reverted"}
+{"iter": 95, "similarity": 0.615988, "kept": false, "notes": "no gain (0.6160<=0.7520); reverted"}
+{"iter": 96, "similarity": 0.699503, "kept": false, "notes": "no gain (0.6995<=0.7520); reverted"}
+{"iter": 97, "similarity": 0.579892, "kept": false, "notes": "no gain (0.5799<=0.7520); reverted"}
+{"iter": 98, "similarity": 0.5468, "kept": false, "notes": "no gain (0.5468<=0.7520); reverted"}
+{"iter": 99, "similarity": 0.669114, "kept": false, "notes": "no gain (0.6691<=0.7520); reverted"}
+{"iter": 100, "similarity": 0.677961, "kept": false, "notes": "no gain (0.6780<=0.7520); reverted"}

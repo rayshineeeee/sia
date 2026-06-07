@@ -1,0 +1,16 @@
+{
+  "reference": "/Users/johnnysheng/code/sia/jonslop/tasks/taste-shader/demo/converge/reference.jpg",
+  "iters": 3,
+  "critique_mode": "VLM-guided (Qwen/Qwen3.5-397B-A17B)",
+  "vision_model": "Qwen/Qwen3.5-397B-A17B",
+  "gpt_oss_provider": "cerebras",
+  "gpt_oss_model": "gpt-oss-120b",
+  "frontend_run": 9,
+  "clip_model": "ViT-B-32/laion2b_s34b_b79k",
+  "initial_similarity": 0.47508,
+  "best_similarity": 0.645095,
+  "improvement": 0.170015,
+  "kept_steps": 2,
+  "total_steps": 4,
+  "finished": "2026-06-06T16:53:41.579082"
+}

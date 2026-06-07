@@ -1,0 +1,4 @@
+{"iter": 0, "similarity": 0.47508, "kept": true, "notes": "initial shader (compiled); Procedural Thomas attractor rendered as white filaments with"}
+{"iter": 1, "similarity": 0.645095, "kept": true, "notes": "improved (compiled); Replaced Thomas attractor with a closed torus\u2011knot"}
+{"iter": 2, "similarity": 0.570381, "kept": false, "notes": "no gain (0.5704<=0.6451); reverted"}
+{"iter": 3, "similarity": 0.597035, "kept": false, "notes": "no gain (0.5970<=0.6451); reverted"}

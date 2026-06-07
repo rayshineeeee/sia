@@ -1,0 +1,16 @@
+{
+  "reference": "/Users/johnnysheng/code/sia/jonslop/tasks/taste-shader/data/private/taste/liked/domain-expansion-portal.jpg",
+  "iters": 100,
+  "critique_mode": "TEXT-critique fallback",
+  "vision_model": null,
+  "gpt_oss_provider": "cerebras",
+  "gpt_oss_model": "gpt-oss-120b",
+  "frontend_run": null,
+  "clip_model": "ViT-B-32/laion2b_s34b_b79k",
+  "initial_similarity": 0.354542,
+  "best_similarity": 0.371016,
+  "improvement": 0.016474,
+  "kept_steps": 10,
+  "total_steps": 101,
+  "finished": "2026-06-06T17:25:56.997339"
+}
