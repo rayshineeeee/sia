@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Taste-Shader — What We Built & How It Uses SIA</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{ --paper:#f5f5f5; --ink:#2d3142; --muted:#4f5d75; --soft:#7a8399; --accent:#eb6c36; --rule:rgba(45,49,66,0.12); }
+  *{box-sizing:border-box;}
+  body{ margin:0; background:var(--paper); color:var(--ink); font-family:'Geist',sans-serif; -webkit-font-smoothing:antialiased; padding:48px 40px 72px; }
+  .wrap{max-width:1280px; margin:0 auto;}
+  .eyebrow{ font-family:'Geist Mono',monospace; font-size:11px; font-weight:500; letter-spacing:0.18em; text-transform:uppercase; color:var(--muted); margin:0 0 8px; }
+  h1{ font-family:'Instrument Serif',serif; font-weight:400; font-size:2.4rem; margin:0 0 6px; line-height:1.1; }
+  h2{ font-family:'Instrument Serif',serif; font-weight:400; font-size:1.5rem; margin:48px 0 4px; }
+  .subtitle{font-size:0.95rem; color:var(--muted); margin:0 0 12px; max-width:920px; line-height:1.55;}
+  .sec-sub{font-size:0.88rem; color:var(--muted); margin:0 0 16px; max-width:920px;}
+  .diagram{width:100%; overflow-x:auto;}
+  svg{display:block; width:100%; height:auto;}
+  svg.wide{min-width:1080px;} svg.tall{min-width:760px; max-width:920px; margin:0 auto;}
+  table{width:100%; border-collapse:collapse; font-size:0.8rem; margin-top:8px;}
+  th{ text-align:left; font-family:'Geist Mono',monospace; font-size:8px; letter-spacing:0.1em; text-transform:uppercase; color:var(--muted); border-bottom:1px solid var(--rule); padding:8px 10px; }
+  td{ vertical-align:top; padding:9px 10px; border-bottom:1px solid var(--rule); color:var(--ink); line-height:1.45; }
+  td.muted{color:var(--muted);}
+  td code{font-family:'Geist Mono',monospace; font-size:0.74rem; color:var(--ink);}
+  .ph{font-family:'Geist Mono',monospace; font-weight:600; color:var(--accent);}
+  .cards{display:grid; grid-template-columns:1.1fr 1fr 1fr 0.9fr; gap:14px; margin-top:14px;}
+  .card{background:#fff; border:1px solid var(--rule); border-radius:6px; padding:1rem 1.1rem;}
+  .card .tag{font-family:'Geist Mono',monospace; font-size:8px; letter-spacing:0.12em; text-transform:uppercase; color:var(--accent); margin:0 0 6px;}
+  .card h3{font-size:0.92rem; font-weight:600; margin:0 0 6px;}
+  .card p{font-size:0.78rem; color:var(--muted); line-height:1.4; margin:0;}
+  .note{ background:rgba(235,108,54,0.06); border:1px solid rgba(235,108,54,0.4); border-radius:6px; padding:0.9rem 1.1rem; margin-top:22px; font-size:0.86rem; color:var(--ink); line-height:1.5; }
+  .note strong{color:var(--accent);}
+  .num{font-family:'Geist Mono',monospace; font-variant-numeric:tabular-nums;}
+  .down{color:var(--accent); font-weight:600;}
+  footer{ margin-top:44px; padding-top:14px; border-top:1px solid var(--rule); font-family:'Geist Mono',monospace; font-size:11px; color:var(--soft); display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="eyebrow">SIA Hackathon · Taste-Shader · What We Built</p>
+  <h1>Self-improving an agent toward a person's taste — and what that honestly reveals.</h1>
+  <p class="subtitle">A frozen model writes a GLSL shader <em>blind</em>; it doesn't match the target taste, and we can't RLHF its taste. So we use <strong>SIA</strong>: a Meta Agent writes a Task-Specific Agent, a Task Environment runs it and scores it on <strong>held-out</strong> taste, and an Improvement Agent <strong>rewrites the agent</strong> for the next generation. We run <strong>SIA-H — harness only; the model stays frozen.</strong> The honest result: SIA's loop works and is legible, but on a <em>subjective</em> target a smarter agent didn't reliably raise held-out taste — <strong>reward faithfulness, not agent cleverness, is the ceiling.</strong></p>
+
+  <!-- WHAT WE BUILT -->
+  <h2>What we built</h2>
+  <div class="cards">
+    <div class="card"><p class="tag">SIA task · the real loop</p><h3>Taste-Shader benchmark</h3><p>A new <code>--task_dir</code> for stock sia: <code>task.md</code> + <code>evaluate.py</code> (CLIP-taste metric) + reference agent + held-out taste in <code>data/private/</code>. A subjective target, scored honestly. This is what SIA self-improves.</p></div>
+    <div class="card"><p class="tag">Prototype · the visual</p><h3>converge.py</h3><p>A standalone, watchable convergence loop (gap → edit → render → score → keep-best) toward one reference. Frozen model, fixed script. The demo visualization — <strong>not</strong> SIA.</p></div>
+    <div class="card"><p class="tag">Experiment · the study</p><h3>faithfulness_probe.py</h3><p>Per step: the CLIP proxy SIA optimises vs an <em>independent</em> VLM judge it never sees. Where they diverge, the loop is gaming its reward. Turns "auto-score ≠ taste" into an automatic detector.</p></div>
+    <div class="card"><p class="tag">Demo · the surface</p><h3>Frontend (Next.js)</h3><p>An iteration carousel that plays the run back — per-generation render, score, and the climb — the stage view of the loop in motion.</p></div>
+  </div>
+
+  <!-- ============ DIAGRAM 1 — SIA canonical architecture ============ -->
+  <h2>1 · SIA — the actual framework loop (canonical architecture, mapped to taste-shader)</h2>
+  <p class="sec-sub">SIA's real architecture from the docs, applied to our task. <strong>SIA-H: weights frozen</strong> — the Improvement Agent modifies the agent's <em>code</em> (<code>target_agent.py</code>), not the model. Every generation is scored on <strong>held-out</strong> taste in <code>data/private/</code>.</p>
+  <div class="diagram">
+  <svg class="tall" viewBox="0 0 1120 600" xmlns="http://www.w3.org/2000/svg" font-family="'Geist', sans-serif">
+    <defs>
+      <marker id="s1" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#4f5d75"/></marker>
+      <marker id="s1c" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#eb6c36"/></marker>
+    </defs>
+    <rect width="1120" height="600" fill="#f5f5f5"/>
+
+    <!-- boundary -->
+    <rect x="40" y="24" width="1040" height="544" rx="8" fill="none" stroke="rgba(45,49,66,0.30)" stroke-width="1" stroke-dasharray="4,4"/>
+    <rect x="300" y="18" width="440" height="12" fill="#f5f5f5"/>
+    <text x="304" y="27" fill="#7a8399" font-family="'Geist Mono',monospace" font-size="8" letter-spacing="0.12em">SIA SELF-IMPROVEMENT LOOP · PER GENERATION · WEIGHTS FROZEN (SIA-H)</text>
+
+    <!-- arrows (before boxes) -->
+    <line x1="560" y1="120" x2="560" y2="164" stroke="#4f5d75" stroke-width="1" marker-end="url(#s1)"/>
+    <line x1="560" y1="240" x2="560" y2="284" stroke="#4f5d75" stroke-width="1" marker-end="url(#s1)"/>
+    <path d="M 504 368 L 504 404 L 256 404 L 256 428" fill="none" stroke="#4f5d75" stroke-width="1" marker-end="url(#s1)"/>
+    <line x1="416" y1="488" x2="700" y2="488" stroke="#4f5d75" stroke-width="1" marker-end="url(#s1)"/>
+    <path d="M 864 428 L 864 404 L 616 404 L 616 372" fill="none" stroke="#eb6c36" stroke-width="1.2" marker-end="url(#s1c)"/>
+
+    <!-- arrow labels -->
+    <rect x="528" y="254" width="64" height="12" rx="2" fill="#f5f5f5"/><text x="560" y="263" fill="#7a8399" font-family="'Geist Mono',monospace" font-size="8" text-anchor="middle">CREATES</text>
+    <rect x="296" y="398" width="168" height="12" rx="2" fill="#f5f5f5"/><text x="380" y="407" fill="#7a8399" font-family="'Geist Mono',monospace" font-size="8" text-anchor="middle">python target_agent.py</text>
+    <rect x="484" y="482" width="152" height="12" rx="2" fill="#f5f5f5"/><text x="560" y="491" fill="#7a8399" font-family="'Geist Mono',monospace" font-size="8" text-anchor="middle">agent_execution.json</text>
+    <rect x="628" y="398" width="216" height="12" rx="2" fill="#f5f5f5"/><text x="736" y="407" fill="#eb6c36" font-family="'Geist Mono',monospace" font-size="8" text-anchor="middle">improvement.md · MODIFIES AGENT</text>
+
+    <!-- Inputs -->
+    <rect x="432" y="40" width="256" height="80" rx="6" fill="#f5f5f5"/>
+    <rect x="432" y="40" width="256" height="80" rx="6" fill="rgba(79,93,117,0.10)" stroke="#7a8399" stroke-width="1"/>
+    <rect x="440" y="48" width="48" height="12" rx="2" fill="none" stroke="rgba(122,131,153,0.5)" stroke-width="0.8"/><text x="464" y="57" fill="#7a8399" font-family="'Geist Mono',monospace" font-size="7" text-anchor="middle">INPUTS</text>
+    <text x="560" y="80" fill="#2d3142" font-size="12" font-weight="600" text-anchor="middle">task.md · data/ · evaluate.py</text>
+    <text x="560" y="98" fill="#4f5d75" font-family="'Geist Mono',monospace" font-size="9" text-anchor="middle">held-out taste in data/private</text>
+    <text x="560" y="112" fill="#4f5d75" font-family="'Geist Mono',monospace" font-size="9" text-anchor="middle">CLIP-taste scorer</text>
+
+    <!-- Meta Agent -->
+    <rect x="452" y="168" width="216" height="72" rx="6" fill="#f5f5f5"/>
+    <rect x="452" y="168" width="216" height="72" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+    <rect x="460" y="176" width="36" height="12" rx="2" fill="none" stroke="rgba(45,49,66,0.40)" stroke-width="0.8"/><text x="478" y="185" fill="#2d3142" font-family="'Geist Mono',monospace" font-size="7" text-anchor="middle">SIA</text>
+    <text x="560" y="206" fill="#2d3142" font-size="13" font-weight="600" text-anchor="middle">Meta Agent</text>
+    <text x="560" y="224" fill="#4f5d75" font-family="'Geist Mono',monospace" font-size="9" text-anchor="middle">creates the initial agent</text>
+
+    <!-- Task-Specific Agent (coral focal) -->
+    <rect x="440" y="288" width="240" height="80" rx="6" fill="#f5f5f5"/>
+    <rect x="440" y="288" width="240" height="80" rx="6" fill="rgba(235,108,54,0.08)" stroke="#eb6c36" stroke-width="1.2"/>
+    <rect x="448" y="296" width="48" height="12" rx="2" fill="none" stroke="rgba(235,108,54,0.5)" stroke-width="0.8"/><text x="472" y="305" fill="#eb6c36" font-family="'Geist Mono',monospace" font-size="7" text-anchor="middle">AGENT</text>
+    <text x="560" y="328" fill="#2d3142" font-size="13" font-weight="600" text-anchor="middle">Task-Specific Agent</text>
+    <text x="560" y="346" fill="#4f5d75" font-family="'Geist Mono',monospace" font-size="9" text-anchor="middle">target_agent.py — what SIA evolves</text>
+
+    <!-- Task Environment -->
+    <rect x="96" y="432" width="320" height="112" rx="6" fill="#f5f5f5"/>
+    <rect x="96" y="432" width="320" height="112" rx="6" fill="rgba(45,49,66,0.05)" stroke="#4f5d75" stroke-width="1"/>
+    <rect x="104" y="440" width="84" height="12" rx="2" fill="none" stroke="rgba(79,93,117,0.5)" stroke-width="0.8"/><text x="146" y="449" fill="#4f5d75" font-family="'Geist Mono',monospace" font-size="7" text-anchor="middle">RUN + SCORE</text>
+    <text x="256" y="476" fill="#2d3142" font-size="12" font-weight="600" text-anchor="middle">Task Environment</text>
+    <text x="256" y="496" fill="#4f5d75" font-family="'Geist Mono',monospace" font-size="9" text-anchor="middle">runs the agent → shader + render</text>
+    <text x="256" y="510" fill="#4f5d75" font-family="'Geist Mono',monospace" font-size="9" text-anchor="middle">+ agent_execution.json</text>
+    <text x="256" y="526" fill="#eb6c36" font-family="'Geist Mono',monospace" font-size="9" text-anchor="middle">scored HELD-OUT · evaluate.py</text>
+
+    <!-- Improvement Agent -->
+    <rect x="704" y="432" width="320" height="112" rx="6" fill="#f5f5f5"/>
+    <rect x="704" y="432" width="320" height="112" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+    <rect x="712" y="440" width="92" height="12" rx="2" fill="none" stroke="rgba(45,49,66,0.40)" stroke-width="0.8"/><text x="758" y="449" fill="#2d3142" font-family="'Geist Mono',monospace" font-size="7" text-anchor="middle">SIA · FEEDBACK</text>
+    <text x="864" y="476" fill="#2d3142" font-size="12" font-weight="600" text-anchor="middle">Improvement Agent</text>
+    <text x="864" y="496" fill="#4f5d75" font-family="'Geist Mono',monospace" font-size="9" text-anchor="middle">reads the log + score →</text>
+    <text x="864" y="510" fill="#4f5d75" font-family="'Geist Mono',monospace" font-size="9" text-anchor="middle">writes improvement.md,</text>
+    <text x="864" y="526" fill="#4f5d75" font-family="'Geist Mono',monospace" font-size="9" text-anchor="middle">modifies target_agent.py</text>
+  </svg>
+  </div>
+  <div class="note"><strong>What SIA contributes</strong> that <code>converge.py</code> alone cannot: <strong>held-out, ungameable scoring</strong> (a real gain, not memorisation — the answer to our Track-3 reward-faithfulness problem); it improves the <strong>agent</strong>, so gains generalise; and it is <strong>general across tasks and can also update weights</strong> (SIA-W+H) — which we did not run.</div>
+
+  <!-- WHAT SIA ACTUALLY CHANGED -->
+  <h2>What SIA actually changed (verified in <code>runs/</code>)</h2>
+  <p class="sec-sub"><strong>Weights — untouched.</strong> Default <code>--focus harness</code>; no <code>train.py</code>, no LoRA adapter, no Tinker/Modal anywhere in the runs. SIA-H, not SIA-W+H — we report that plainly. <strong>Harness — rewritten every generation.</strong> The Improvement Agent reads the held-out score + <code>agent_execution.json</code> and rewrites the whole <code>target_agent.py</code> (run_2):</p>
+  <table>
+    <thead><tr><th>Gen</th><th>target_agent.py</th><th>Held-out taste</th><th>What the Improvement Agent changed (from improvement.md)</th></tr></thead>
+    <tbody>
+      <tr><td class="ph">gen 1</td><td class="muted num">587 lines</td><td class="num">58.77</td><td class="muted">Meta Agent's initial agent. Diagnosed: generic noise, no subject, taste dumped raw, selection by pixel-variance, no critique step.</td></tr>
+      <tr><td class="ph">gen 2</td><td class="muted num">759 lines <span class="down">(724 changed)</span></td><td class="num">58.88</td><td class="muted">Added a <strong>Taste-Translation layer</strong>, <strong>diverse candidate prompts</strong>, a <strong>critique + refine loop</strong>, and an <strong>anti-slop firewall</strong>.</td></tr>
+      <tr><td class="ph">gen 3</td><td class="muted num">504 lines</td><td class="num down">45.03</td><td class="muted">Rewrote again — and held-out taste <em>dropped</em>.</td></tr>
+    </tbody>
+  </table>
+  <div class="note"><strong>This is genuine SIA-H, working.</strong> The harness changes are substantial and well-reasoned — the Improvement Agent's logic is real, not cosmetic. We are not doing weight updates, and we don't claim to.</div>
+
+  <!-- ============ DIAGRAM 2 — the convergence engine ============ -->
+  <h2>2 · The convergence engine — what the Task-Specific Agent does each generation</h2>
+  <p class="sec-sub">The agent's inner behaviour (prototyped standalone in <code>tools/converge.py</code>): close the gap to one reference, edit by edit. SIA wraps many of these and rewrites the agent that runs it.</p>
+  <div class="diagram">
+  <svg class="wide" viewBox="0 0 1280 460" xmlns="http://www.w3.org/2000/svg" font-family="'Geist', sans-serif">
+    <defs>
+      <marker id="a2" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#4f5d75"/></marker>
+      <marker id="a2c" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#eb6c36"/></marker>
+    </defs>
+    <rect width="1280" height="460" fill="#f5f5f5"/>
+    <rect x="240" y="120" width="768" height="208" rx="8" fill="none" stroke="rgba(45,49,66,0.30)" stroke-width="1" stroke-dasharray="4,4"/>
+    <rect x="256" y="114" width="300" height="12" fill="#f5f5f5"/>
+    <text x="260" y="123" fill="#7a8399" font-family="'Geist Mono',monospace" font-size="8" letter-spacing="0.12em">CONVERGENCE ENGINE · ONE ITERATION · NO HUMAN</text>
+    <line x1="200" y1="216" x2="252" y2="216" stroke="#4f5d75" stroke-width="1" marker-end="url(#a2)"/>
+    <line x1="396" y1="216" x2="408" y2="216" stroke="#4f5d75" stroke-width="1" marker-end="url(#a2)"/>
+    <line x1="552" y1="216" x2="564" y2="216" stroke="#4f5d75" stroke-width="1" marker-end="url(#a2)"/>
+    <line x1="708" y1="216" x2="720" y2="216" stroke="#4f5d75" stroke-width="1" marker-end="url(#a2)"/>
+    <line x1="864" y1="216" x2="868" y2="216" stroke="#4f5d75" stroke-width="1" marker-end="url(#a2)"/>
+    <line x1="996" y1="216" x2="1044" y2="216" stroke="#4f5d75" stroke-width="1" marker-end="url(#a2)"/>
+    <path d="M 932 264 L 932 296 L 326 296 L 326 264" fill="none" stroke="#eb6c36" stroke-width="1.2" marker-end="url(#a2c)"/>
+    <rect x="206" y="198" width="40" height="12" rx="2" fill="#f5f5f5"/><text x="226" y="207" fill="#7a8399" font-family="'Geist Mono',monospace" font-size="8" text-anchor="middle">TARGET</text>
+    <rect x="378" y="198" width="48" height="12" rx="2" fill="#f5f5f5"/><text x="402" y="207" fill="#7a8399" font-family="'Geist Mono',monospace" font-size="8" text-anchor="middle">CRITIQUE</text>
+    <rect x="534" y="198" width="44" height="12" rx="2" fill="#f5f5f5"/><text x="556" y="207" fill="#7a8399" font-family="'Geist Mono',monospace" font-size="8" text-anchor="middle">SHADER</text>
+    <rect x="690" y="198" width="40" height="12" rx="2" fill="#f5f5f5"/><text x="710" y="207" fill="#7a8399" font-family="'Geist Mono',monospace" font-size="8" text-anchor="middle">FRAME</text>
+    <rect x="1004" y="198" width="36" height="12" rx="2" fill="#f5f5f5"/><text x="1022" y="207" fill="#7a8399" font-family="'Geist Mono',monospace" font-size="8" text-anchor="middle">BEST</text>
+    <rect x="568" y="290" width="76" height="12" rx="2" fill="#f5f5f5"/><text x="606" y="299" fill="#eb6c36" font-family="'Geist Mono',monospace" font-size="8" text-anchor="middle">NEXT ITERATION</text>
+    <rect x="40" y="168" width="160" height="96" rx="6" fill="#f5f5f5"/><rect x="40" y="168" width="160" height="96" rx="6" fill="rgba(235,108,54,0.08)" stroke="#eb6c36" stroke-width="1.2"/>
+    <rect x="48" y="176" width="56" height="12" rx="2" fill="none" stroke="rgba(235,108,54,0.5)" stroke-width="0.8"/><text x="76" y="185" fill="#eb6c36" font-family="'Geist Mono',monospace" font-size="7" text-anchor="middle">REWARD</text>
+    <text x="120" y="214" fill="#2d3142" font-size="12" font-weight="600" text-anchor="middle">Reference</text><text x="120" y="232" fill="#4f5d75" font-family="'Geist Mono',monospace" font-size="9" text-anchor="middle">liked image + text</text><text x="120" y="248" fill="#4f5d75" font-family="'Geist Mono',monospace" font-size="9" text-anchor="middle">CLIP-embed once</text>
+    <rect x="252" y="168" width="144" height="96" rx="6" fill="#f5f5f5"/><rect x="252" y="168" width="144" height="96" rx="6" fill="rgba(45,49,66,0.05)" stroke="#4f5d75" stroke-width="1"/>
+    <rect x="260" y="176" width="36" height="12" rx="2" fill="none" stroke="rgba(79,93,117,0.5)" stroke-width="0.8"/><text x="278" y="185" fill="#4f5d75" font-family="'Geist Mono',monospace" font-size="7" text-anchor="middle">VLM</text>
+    <text x="324" y="210" fill="#2d3142" font-size="12" font-weight="600" text-anchor="middle">Gap analysis</text><text x="324" y="228" fill="#4f5d75" font-family="'Geist Mono',monospace" font-size="9" text-anchor="middle">best vs target</text><text x="324" y="244" fill="#4f5d75" font-family="'Geist Mono',monospace" font-size="9" text-anchor="middle">→ critique</text>
+    <rect x="408" y="168" width="144" height="96" rx="6" fill="#f5f5f5"/><rect x="408" y="168" width="144" height="96" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+    <rect x="416" y="176" width="48" height="12" rx="2" fill="none" stroke="rgba(45,49,66,0.40)" stroke-width="0.8"/><text x="440" y="185" fill="#2d3142" font-family="'Geist Mono',monospace" font-size="7" text-anchor="middle">AGENT</text>
+    <text x="480" y="210" fill="#2d3142" font-size="12" font-weight="600" text-anchor="middle">Tailored edit</text><text x="480" y="228" fill="#4f5d75" font-family="'Geist Mono',monospace" font-size="9" text-anchor="middle">gpt-oss rewrites</text><text x="480" y="244" fill="#4f5d75" font-family="'Geist Mono',monospace" font-size="9" text-anchor="middle">the GLSL</text>
+    <rect x="564" y="168" width="144" height="96" rx="6" fill="#f5f5f5"/><rect x="564" y="168" width="144" height="96" rx="6" fill="rgba(45,49,66,0.03)" stroke="rgba(45,49,66,0.30)" stroke-width="1"/>
+    <rect x="572" y="176" width="56" height="12" rx="2" fill="none" stroke="rgba(45,49,66,0.30)" stroke-width="0.8"/><text x="600" y="185" fill="#4f5d75" font-family="'Geist Mono',monospace" font-size="7" text-anchor="middle">MODERNGL</text>
+    <text x="636" y="210" fill="#2d3142" font-size="12" font-weight="600" text-anchor="middle">Render frame</text><text x="636" y="228" fill="#4f5d75" font-family="'Geist Mono',monospace" font-size="9" text-anchor="middle">256², 1 frame</text><text x="636" y="244" fill="#4f5d75" font-family="'Geist Mono',monospace" font-size="9" text-anchor="middle">+ compile-repair</text>
+    <rect x="720" y="168" width="144" height="96" rx="6" fill="#f5f5f5"/><rect x="720" y="168" width="144" height="96" rx="6" fill="rgba(45,49,66,0.05)" stroke="#4f5d75" stroke-width="1"/>
+    <rect x="728" y="176" width="36" height="12" rx="2" fill="none" stroke="rgba(79,93,117,0.5)" stroke-width="0.8"/><text x="746" y="185" fill="#4f5d75" font-family="'Geist Mono',monospace" font-size="7" text-anchor="middle">CLIP</text>
+    <text x="792" y="210" fill="#2d3142" font-size="12" font-weight="600" text-anchor="middle">Score (proxy)</text><text x="792" y="228" fill="#4f5d75" font-family="'Geist Mono',monospace" font-size="9" text-anchor="middle">cosine vs the</text><text x="792" y="244" fill="#4f5d75" font-family="'Geist Mono',monospace" font-size="9" text-anchor="middle">reference</text>
+    <rect x="876" y="168" width="120" height="96" rx="6" fill="#f5f5f5"/><rect x="876" y="168" width="120" height="96" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+    <rect x="884" y="176" width="44" height="12" rx="2" fill="none" stroke="rgba(45,49,66,0.40)" stroke-width="0.8"/><text x="906" y="185" fill="#2d3142" font-family="'Geist Mono',monospace" font-size="7" text-anchor="middle">SELECT</text>
+    <text x="936" y="210" fill="#2d3142" font-size="12" font-weight="600" text-anchor="middle">Keep best</text><text x="936" y="228" fill="#4f5d75" font-family="'Geist Mono',monospace" font-size="9" text-anchor="middle">hill-climb:</text><text x="936" y="244" fill="#4f5d75" font-family="'Geist Mono',monospace" font-size="9" text-anchor="middle">keep / revert</text>
+    <rect x="1048" y="168" width="160" height="96" rx="6" fill="#f5f5f5"/><rect x="1048" y="168" width="160" height="96" rx="6" fill="rgba(79,93,117,0.10)" stroke="#7a8399" stroke-width="1"/>
+    <rect x="1056" y="176" width="56" height="12" rx="2" fill="none" stroke="rgba(122,131,153,0.5)" stroke-width="0.8"/><text x="1084" y="185" fill="#7a8399" font-family="'Geist Mono',monospace" font-size="7" text-anchor="middle">OUTPUT</text>
+    <text x="1128" y="210" fill="#2d3142" font-size="12" font-weight="600" text-anchor="middle">Best shader</text><text x="1128" y="228" fill="#4f5d75" font-family="'Geist Mono',monospace" font-size="9" text-anchor="middle">curve · gif</text><text x="1128" y="244" fill="#4f5d75" font-family="'Geist Mono',monospace" font-size="9" text-anchor="middle">→ SIA scores it</text>
+    <text x="624" y="324" fill="#7a8399" font-family="'Geist Mono',monospace" font-size="9" text-anchor="middle">every iteration writes  frames/iter_NN.png · similarity · critique notes  →  scrub the whole convergence</text>
+  </svg>
+  </div>
+  <div class="note"><strong>The honest distinction (our Track-3 point).</strong> The convergence engine scores against the <em>same</em> reference it edits toward — a <strong>proxy</strong> it can game. SIA's <code>evaluate.py</code> (Diagram 1) scores on <strong>held-out</strong> taste the agent never sees. The gap between the proxy climbing and held-out taste actually improving is the reward-faithfulness question we study.</div>
+
+  <!-- WHAT WE FOUND -->
+  <h2>What we found — honestly</h2>
+  <p class="sec-sub">The reportable result is not a big number. It's a finding about <em>how self-improving loops behave on subjective targets.</em></p>
+  <table>
+    <thead><tr><th>Observation</th><th>What it means</th></tr></thead>
+    <tbody>
+      <tr><td>Harness grew + got smarter, held-out taste did not follow: <span class="num">58.8 → 58.9 → <span class="down">45.0</span></span></td><td class="muted">SIA's Improvement Agent made <em>plausible</em> improvements the held-out reward did not confirm — gen 3 was <em>worse</em>. A more sophisticated agent ≠ more taste.</td></tr>
+      <tr><td>The Improvement Agent flagged its own proxy</td><td class="muted">Verbatim from improvement.md: <em>"Selection is purely by pixel variance — high variance does NOT mean taste alignment."</em> The loop noticed its internal proxy wasn't taste.</td></tr>
+      <tr><td>The ceiling is the reward, not the agent</td><td class="muted">On a fuzzy goal, self-improvement is bottlenecked by whether the metric <em>faithfully</em> measures the goal. The held-out eval is the only thing that catches a "larped" improvement.</td></tr>
+    </tbody>
+  </table>
+  <div class="note"><strong>So we measure faithfulness directly.</strong> <code>faithfulness_probe.py</code> scores every step with the CLIP proxy <em>and</em> an independent VLM judge that is never part of the reward — a <strong>Two-Eyes test</strong> (SOTARE #4: <em>"the delta between the eyes IS the alignment gap"</em>). Grounded in the research: <em>"we improve on the things we can measure"</em> (Eric Jang) — outer-loop verifiability is the limit of self-improvement; SOTARE #27 calls an ungrounded "win" <em>larping</em>, valid only if a separate eval-bench confirms it. Our probe is that bench.</div>
+
+  <!-- PHASES -->
+  <h2>The phases — and their SIA counterparts</h2>
+  <table>
+    <thead><tr><th>Phase</th><th>What happens</th><th>Built in (converge.py)</th><th>SIA counterpart</th></tr></thead>
+    <tbody>
+      <tr><td class="ph">0 · Anchor</td><td>CLIP-embed the reference once — the metric anchor. Swap reference → different taste.</td><td class="muted"><code>clip_embed()</code></td><td class="muted">held-out taste vector in <code>data/private/</code></td></tr>
+      <tr><td class="ph">1 · Gap analysis</td><td>A VLM critiques current-best vs reference (colour→structure→density→motion).</td><td class="muted"><code>vlm_critique()</code></td><td class="muted">Improvement Agent reads <code>agent_execution.json</code></td></tr>
+      <tr><td class="ph">2 · Tailored edit</td><td>The critique → gpt-oss rewrites the GLSL to fix those gaps.</td><td class="muted"><code>edit_shader()</code></td><td class="muted">Improvement Agent rewrites <code>target_agent.py</code></td></tr>
+      <tr><td class="ph">3 · Render</td><td>ModernGL renders one 256² frame (+compile-repair; revert if flat).</td><td class="muted"><code>render_or_repair()</code></td><td class="muted">Task Environment runs the agent</td></tr>
+      <tr><td class="ph">4 · Score</td><td>CLIP cosine(render, reference) → one number.</td><td class="muted"><code>cosine()</code></td><td class="muted"><code>evaluate.py</code> — on <em>held-out</em> taste</td></tr>
+      <tr><td class="ph">5 · Keep best</td><td>Hill-climb: keep only if it beats best-so-far, else revert.</td><td class="muted">loop in <code>run()</code></td><td class="muted">SIA keeps the best generation</td></tr>
+    </tbody>
+  </table>
+  <div class="note"><strong>Frames, not gifs (scoping).</strong> Each iteration renders <strong>one static frame</strong> (<code>u_time=0</code>) — all the score needs, and fast. Only the final best shader is animated (8 <code>u_time</code> frames → <code>best_animated.gif</code>). Per-iteration ≠ animation; motion is final-only.</div>
+
+  <footer>
+    <span>What we built + how it uses SIA · canonical SIA architecture · SIA-H (weights frozen) · verified against runs/ + tools/converge.py</span>
+    <span>jonslop/research/how-it-works.html · 2026-06-06</span>
+  </footer>
+</div>
+</body>
+</html>
